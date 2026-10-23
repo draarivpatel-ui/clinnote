@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self';" />
+  <title>ClinNote | Clinical Discharge De-Jargonizer &amp; Medication Safety Workbench</title>
+  <meta name="description" content="Client-side clinical NLP discharge de-jargonizer, bilingual EN/ES readability analyzer, 24-hour medication collision matrix, and red-flag symptom triage workbench." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a href="#main-workbench" class="skip-link">Skip to Clinical Discharge Workbench</a>
+
+  <header class="site-header no-print">
+    <div class="header-inner">
+      <div class="brand-lockup">
+        <svg class="brand-mark-svg" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+          <rect x="2" y="2" width="28" height="28" rx="5" fill="#111820" stroke="#0D7A5F" stroke-width="1.75" />
+          <path d="M16 8v16M8 16h16" stroke="#0D7A5F" stroke-width="2.5" stroke-linecap="round" />
+          <circle cx="16" cy="16" r="3" fill="#F7F5F0" />
+        </svg>
+        <div class="brand-titles">
+          <span class="brand-name">ClinNote</span>
+          <span class="brand-tagline">Zero-Cloud Clinical Discharge Translator &amp; Safety Dossier</span>
+        </div>
+      </div>
+
+      <nav class="header-controls" aria-label="Language and print controls">
+        <div class="privacy-pill" title="100% Client-Side Execution: Zero PHI leaves your browser">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M10 2L4 4.5v5.2c0 4.1 2.6 7.6 6 8.3 3.4-.7 6-4.2 6-8.3V4.5L10 2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+            <path d="M7.5 10.2l1.8 1.8 3.4-3.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>100% Local Browser NLP (Zero PHI Cloud Upload)</span>
+        </div>
+
+        <div class="lang-switcher" role="group" aria-label="Select patient instruction language">
+          <button type="button" class="lang-btn is-active" data-lang-btn="en" aria-pressed="true">English (EN)</button>
+          <button type="button" class="lang-btn" data-lang-btn="es" aria-pressed="false">Espanol (ES)</button>
+        </div>
+
+        <button type="button" id="print-fridge-sheet-btn" class="action-btn-primary">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+            <path d="M5 7V3h10v4M5 14H3V8h14v6h-2M5 11h10v6H5v-6z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+          </svg>
+          <span>Print Refrigerator Sheet</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-workbench" class="workbench-shell no-print">
+    <!-- Hero Editorial Split -->
+    <section class="hero-dossier" aria-labelledby="hero-main-heading">
+      <div class="hero-copy-column">
+        <h1 id="hero-main-heading" class="hero-heading">Hospital discharge instructions translated into safe, Grade 5 patient care plans.</h1>
+        <p class="hero-lead">
+          Hospital discharge summaries average a Grade 11 to 14 reading level packed with Latin dosing shorthand (<code>PO BID q12h PRN</code>), complex lab markers (<code>eGFR</code>, <code>HbA1c</code>, <code>SpO2</code>), and unflagged over-the-counter medication hazards. ClinNote converts raw clinical notes into plain English and Spanish instructions, builds a 24-hour dosing clock, screens for OTC pharmacokinetic collisions, and prints a one-page refrigerator safety schedule.
+        </p>
+
+        <div class="hero-telemetry-bar" role="region" aria-label="Readability telemetry metrics">
+          <div class="telemetry-cell">
+            <strong id="metric-grade-before" class="telemetry-val tabular-nums">Grade 12.4</strong>
+            <span class="telemetry-caption">Source Clinical Readability</span>
+          </div>
+          <div class="telemetry-cell telemetry-highlight">
+            <strong id="metric-grade-after" class="telemetry-val tabular-nums">Grade 5.6</strong>
+            <span class="telemetry-caption">Translated Patient Level</span>
+          </div>
+          <div class="telemetry-cell">
+            <strong id="metric-clarity-gain" class="telemetry-val tabular-nums">+58%</strong>
+            <span class="telemetry-caption">Comprehension Clarity Gain</span>
+          </div>
+          <div class="telemetry-cell">
+            <strong id="metric-jargon-count" class="telemetry-val tabular-nums">8 terms -&gt; 0</strong>
+            <span class="telemetry-caption">Clinical Jargon Eliminated</span>
+          </div>
+          <div class="telemetry-cell">
+            <strong id="metric-syllable-density" class="telemetry-val tabular-nums">1.76 -&gt; 1.38 syl/w</strong>
+            <span class="telemetry-caption">Syllable-per-Word Density</span>
+          </div>
+        </div>
+      </div>
+
+      <figure class="hero-figure-card">
+        <img
+          src="img/clinnote-hero.jpg"
+          alt="Swiss medical editorial diagram showing clinical discharge shorthand transformed into a structured 24-hour patient care schedule"
+          class="hero-illustration-img"
+          width="680"
+          height="460"
+        />
+        <figcaption class="hero-figcaption">
+          <span>Deterministic Client-Side Clinical Lexicon (38 Medical Terms) + 24-Hour Pharmacokinetic Collision Matrix</span>
+          <span class="mono-code">PHI-ZERO-LOCAL-V1</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- Preset Clinical Scenarios Navigation -->
+    <section class="scenario-selector-section" aria-labelledby="scenario-selector-heading">
+      <div class="section-header-row">
+        <h2 id="scenario-selector-heading" class="section-heading">Clinical Discharge &amp; Lab Telemetry Scenarios</h2>
+        <div class="scenario-meta-strip">
+          <span id="active-scenario-code" class="mono-badge tabular-nums">ER-PULM-01</span>
+          <span id="active-scenario-dept" class="dept-tag">Pediatric Emergency Department Discharge</span>
+        </div>
+      </div>
+
+      <div class="scenario-tabs-grid" role="tablist" aria-label="Preset clinical discharge cases">
+        <button
+          type="button"
+          role="tab"
+          class="scenario-tab-card is-active"
+          data-scenario-tab="pediatric-asthma-er"
+          aria-selected="true"
+        >
+          <span class="tab-title">Post-ER Acute Bronchospasm &amp; Steroid Taper</span>
+          <span class="tab-sub mono-text">Albuterol MDI q4h PRN + Prednisone 20 mg PO QD + SpO2 &gt;= 94%</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          class="scenario-tab-card"
+          data-scenario-tab="t2d-renal-titration"
+          aria-selected="false"
+        >
+          <span class="tab-title">Type 2 Diabetes &amp; CKD Stage 3a Lab Telemetry</span>
+          <span class="tab-sub mono-text">Metformin BID + Lisinopril + Empagliflozin (eGFR 52 / K+ 4.9)</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          class="scenario-tab-card"
+          data-scenario-tab="postop-anticoag-ortho"
+          aria-selected="false"
+        >
+          <span class="tab-title">Post-Op Knee Arthroplasty &amp; Anticoagulation</span>
+          <span class="tab-sub mono-text">Apixaban 2.5 mg BID q12h + Acetaminophen + Oxycodone PRN</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          class="scenario-tab-card"
+          data-scenario-tab="hypertensive-thyroid-sync"
+          aria-selected="false"
+        >
+          <span class="tab-title">Hypertensive Urgency &amp; Fasting Thyroid Sync</span>
+          <span class="tab-sub mono-text">Levothyroxine 75 mcg QAM 60m AC + Amlodipine + Calcium BID</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Bilingual Clinical De-Jargonizer Split Workbench -->
+    <section class="dejargonizer-workbench" aria-labelledby="active-scenario-title">
+      <div class="dossier-banner">
+        <div class="dossier-title-block">
+          <h2 id="active-scenario-title" class="dossier-heading">Post-ER Acute Bronchospasm &amp; Oral Corticosteroid Taper</h2>
+          <p id="active-patient-context" class="dossier-sub">8-year-old discharged after acute asthma exacerbation stabilization</p>
+        </div>
+      </div>
+
+      <div class="translation-split-grid">
+        <!-- Left Column: Raw Clinical Discharge Note + Custom Input -->
+        <div class="clinical-source-panel">
+          <h3 class="panel-heading">Hospital EHR Discharge Summary (Source Text)</h3>
+          <div id="raw-clinical-note-display" class="clinical-note-box mono-text"></div>
+
+          <div class="custom-paste-drawer">
+            <label for="custom-discharge-textarea" class="custom-textarea-label">
+              Paste Custom Discharge Summary or Prescription Sig (De-Jargonizes Live in Browser):
+            </label>
+            <textarea
+              id="custom-discharge-textarea"
+              class="custom-textarea"
+              rows="3"
+              placeholder="Example: Administer Apixaban 2.5 mg PO BID q12h. NSAIDs contraindicated due to melena and nephrotoxicity. Monitor SpO2 and eGFR..."
+            ></textarea>
+            <div class="custom-drawer-actions">
+              <button type="button" id="load-sample-jargon-btn" class="btn-secondary">Load Dense Clinical Sample</button>
+              <button type="button" id="reset-custom-text-btn" class="btn-secondary">Restore Scenario Preset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Plain-Language Grade 5-6 Patient Guide (EN / ES) -->
+        <div class="patient-plain-panel">
+          <h3 class="panel-heading">Plain-Language Patient Care Guide (Grade 5 to 6 Target)</h3>
+          <div id="plain-patient-note-display" class="plain-output-box" aria-live="polite"></div>
+
+          <div class="lexicon-table-wrap">
+            <h4 class="subtable-heading">Detected Clinical Jargon &amp; Plain-Language Replacements</h4>
+            <div class="table-scroll-container">
+              <table class="lexicon-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Clinical Term</th>
+                    <th scope="col">Class</th>
+                    <th scope="col">Plain Patient Translation</th>
+                  </tr>
+                </thead>
+                <tbody id="jargon-glossary-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lab & Vital Sign Telemetry Reference Row -->
+      <div class="labs-section-block">
+        <h3 class="panel-heading">Discharge Lab &amp; Vital Sign Telemetry Reference</h3>
+        <div id="labs-telemetry-grid" class="labs-telemetry-grid"></div>
+      </div>
+    </section>
+
+    <!-- 24-Hour Medication Schedule & OTC Pharmacokinetic Collision Matrix -->
+    <section class="schedule-collision-section" aria-labelledby="schedule-matrix-heading">
+      <div class="section-header-row">
+        <div>
+          <h2 id="schedule-matrix-heading" class="section-heading">24-Hour Medication Clock &amp; OTC Pharmacokinetic Collision Simulator</h2>
+          <p class="section-sub">Toggle common over-the-counter cabinets items below to test for bleeding contraindications, renal triple-whammy injury, mineral chelation malabsorption, and CNS sedation stacking.</p>
+        </div>
+        <div class="safety-status-box">
+          <span class="safety-status-label">Regimen Safety Status:</span>
+          <strong id="safety-band-badge" class="safety-band-pill tabular-nums" data-band="safe">SAFE (0/100)</strong>
+        </div>
+      </div>
+
+      <!-- OTC Add-On Toggles -->
+      <div class="otc-simulator-panel" role="group" aria-label="Over-the-counter medication interaction toggles">
+        <h3 class="panel-heading">Simulate Adding Over-the-Counter (OTC) Cabinet Items</h3>
+        <div id="otc-toggles-container" class="otc-toggles-grid"></div>
+      </div>
+
+      <!-- Collision Alerts Container -->
+      <div id="collision-alerts-list" class="collision-alerts-container" aria-live="polite"></div>
+
+      <!-- 24-Hour Interactive SVG Timeline -->
+      <div class="svg-timeline-card">
+        <h3 class="panel-heading">24-Hour Dosing &amp; Absorption Separation Clock (06:00 to 22:00)</h3>
+        <div id="medication-svg-stage" class="svg-stage-wrap"></div>
+      </div>
+
+      <!-- Hour-by-Hour Dosing Ledger -->
+      <div class="hourly-ledger-card">
+        <h3 class="panel-heading">Hour-by-Hour Administration Ledger</h3>
+        <div id="schedule-slots-list" class="schedule-slots-grid"></div>
+      </div>
+    </section>
+
+    <!-- Red-Flag Triage Symptom Checker -->
+    <section class="triage-checker-section" aria-labelledby="triage-heading">
+      <div class="section-header-row">
+        <div>
+          <h2 id="triage-heading" class="section-heading">Red-Flag Symptom Triage: Clinic Call vs. Emergency Department</h2>
+          <p class="section-sub">Select any post-discharge symptoms observed at home to compute deterministic clinical disposition guidance.</p>
+        </div>
+      </div>
+
+      <div class="triage-split-layout">
+        <div class="symptom-selector-column">
+          <h3 class="panel-heading">Observed Post-Discharge Symptoms (Toggle All That Apply)</h3>
+          <div id="symptom-triage-options" class="symptom-options-list"></div>
+        </div>
+
+        <aside id="triage-disposition-panel" class="triage-disposition-card" data-tone="safe" aria-live="polite">
+          <h3 id="triage-headline-text" class="triage-headline">ROUTINE HOME CARE: CONTINUE SCHEDULED RECOVERY PLAN</h3>
+          <div class="triage-card-top">
+            <strong id="triage-disposition-code" class="triage-code-badge">ROUTINE HOME CARE</strong>
+            <span id="triage-urgency-score" class="triage-score-pill tabular-nums">Urgency 10/100</span>
+          </div>
+          <p id="triage-rationale-text" class="triage-rationale"></p>
+          <div class="triage-action-box">
+            <strong>Next Action Step:</strong>
+            <p id="triage-action-steps"></p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <!-- Printable 1-Page Bilingual Refrigerator Schedule (Visible in @media print) -->
+  <section class="print-refrigerator-sheet" aria-label="Printable bilingual refrigerator medication schedule">
+    <header class="print-sheet-header">
+      <div>
+        <h2 id="print-sheet-title">ClinNote Bilingual Refrigerator Medication &amp; Red-Flag Schedule</h2>
+        <p>100% Local Client-Side Clinical Discharge Summary | Keep Posted on Refrigerator</p>
+      </div>
+      <div class="print-emergency-box">
+        <strong>EMERGENCY: 911</strong>
+        <span>Bring this sheet to all clinic or ER visits</span>
+      </div>
+    </header>
+
+    <div class="print-bilingual-summaries">
+      <div class="print-lang-col">
+        <h3>Plain English Care Summary</h3>
+        <p id="print-sheet-plain-en"></p>
+      </div>
+      <div class="print-lang-col">
+        <h3>Resumen de Cuidado en Espanol</h3>
+        <p id="print-sheet-plain-es"></p>
+      </div>
+    </div>
+
+    <table class="print-med-table">
+      <thead>
+        <tr>
+          <th>Clock Hours</th>
+          <th>Medication &amp; Clinical Sig</th>
+          <th>English Instructions</th>
+          <th>Instrucciones en Espanol</th>
+        </tr>
+      </thead>
+      <tbody id="print-schedule-tbody"></tbody>
+    </table>
+  </section>
+
+  <footer class="site-footer no-print">
+    <div class="footer-inner">
+      <div class="footer-attribution-block">
+        <h2 class="footer-heading">AI Transparency, Privacy Architecture &amp; Clinical Disclaimer</h2>
+        <p class="footer-copy">
+          <strong>100% Client-Side Privacy Architecture (Zero PHI Transmission):</strong> ClinNote executes its entire 38-term clinical NLP de-jargonizer, Flesch-Kincaid readability engine, 24-hour dosing timeline, and pharmacokinetic collision matrix locally inside your browser using pure JavaScript ES modules. A strict <code>Content-Security-Policy</code> with <code>connect-src 'none'</code> guarantees that zero patient health information (PHI) or custom discharge text is ever transmitted to any external server or cloud API.
+        </p>
+        <p class="footer-copy">
+          <strong>STEM2Connect AI Hackathon 2026 Attribution:</strong> Built for the STEM2Connect AI Hackathon 2026. AI coding assistance (Claude / Gemini) was used for software engineering, bilingual lexicon structuring, and editorial diagram illustration generation, with all clinical pharmacokinetic rules, Flesch-Kincaid formulas, and unit tests deterministically verified. ClinNote is an educational clinical communication workbench and does not replace direct physician or pharmacist consultation.
+        </p>
+      </div>
+      <div class="footer-meta-col">
+        <span class="mono-code">ClinNote v1.0.0 | MIT License</span>
+        <a href="https://github.com/draarivpatel-ui/clinnote" class="footer-link" rel="noopener noreferrer">GitHub Repository (draarivpatel-ui/clinnote)</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

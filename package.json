@@ -1,0 +1,19 @@
+{
+  "name": "clinnote",
+  "version": "1.0.0",
+  "description": "ClinNote: Client-Side Clinical Discharge De-Jargonizer, Bilingual Readability Analyzer, and Medication Safety Workbench",
+  "type": "module",
+  "main": "js/clinnote-engine.js",
+  "scripts": {
+    "test": "node --test tests/clinnote.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/draarivpatel-ui/clinnote.git"
+  },
+  "author": "Aariv Patel (draarivpatel-ui)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
