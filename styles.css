@@ -53,6 +53,11 @@
   background: var(--ink-secondary);
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 html {
   background-color: var(--bg-ivory);
   color: var(--ink-primary);
@@ -67,7 +72,6 @@ body {
   margin: 0;
   background-color: var(--bg-ivory);
   color: var(--ink-primary);
-  overflow-x: hidden;
 }
 
 :focus-visible {
@@ -99,8 +103,18 @@ body {
   z-index: 999;
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   top: 12px;
+}
+
+.noscript-banner {
+  background: var(--caution-tint);
+  color: #8F4403;
+  border-bottom: 1px solid var(--caution-amber);
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  text-align: center;
 }
 
 /* Header */
