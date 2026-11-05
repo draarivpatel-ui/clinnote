@@ -43,8 +43,8 @@ ClinNote has zero external runtime dependencies and includes a 51-test Node.js t
 npm test
 ```
 
-## AI & Privacy Attribution Section
+## Privacy Architecture & Clinical Disclaimer
 
 - **100% Client-Side Privacy Architecture (Zero PHI Cloud Transmission):** ClinNote runs its entire clinical NLP de-jargonizer, Flesch-Kincaid readability calculator, and pharmacokinetic collision matrix locally inside the user's browser. A strict `Content-Security-Policy` (`connect-src 'none'`) enforces that zero patient health information (PHI) or custom discharge text ever leaves the device.
-- **AI Assistance Disclosure (STEM2Connect AI Hackathon 2026):** Built for the STEM2Connect AI Hackathon 2026. AI coding and illustration tools (Claude / Gemini) assisted with modular UI scaffolding, bilingual lexicon compilation, and the editorial hero diagram (`img/clinnote-hero.jpg`). All pharmacokinetic collision rules, readability formulas, and 51 automated unit tests were deterministically authored and verified.
+- **STEM2Connect AI Hackathon 2026 Attribution:** Built by Aariv Patel for the STEM2Connect AI Hackathon 2026. All pharmacokinetic collision rules, readability formulas, bilingual lexicon mappings, and 51 automated unit tests are deterministically authored and verified.
 - **Clinical Disclaimer:** ClinNote is an educational clinical communication and medication literacy tool and is not a substitute for professional medical advice, diagnosis, or pharmacist consultation.
