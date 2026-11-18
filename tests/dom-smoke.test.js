@@ -143,7 +143,7 @@ test('DOM Smoke 20: buildUiViewState produces complete view models across all 4 
       assert.equal(view.scenarioId, scenario.id);
       assert.equal(view.lang, lang);
       assert.ok(view.plainPatientParagraph.length > 30);
-      assert.equal(view.scheduleReport.slots.length, 7);
+      assert.equal(view.scheduleReport.slots.length, 8);
     }
   }
 });

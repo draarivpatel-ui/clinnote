@@ -57,11 +57,19 @@
           <button type="button" class="lang-btn" data-lang-btn="es" aria-pressed="false">Espanol (ES)</button>
         </div>
 
+        <button type="button" id="open-evaluation-btn" class="action-btn-secondary" aria-expanded="false" aria-controls="evaluation-drawer">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+            <path d="M3 16h14M4 13l3-4 3 2 3-6 3 3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="7" cy="9" r="1.2" fill="currentColor" /><circle cx="10" cy="11" r="1.2" fill="currentColor" /><circle cx="13" cy="5" r="1.2" fill="currentColor" /><circle cx="16" cy="8" r="1.2" fill="currentColor" />
+          </svg>
+          <span>Evaluation</span>
+        </button>
+
         <button type="button" id="print-fridge-sheet-btn" class="action-btn-primary">
           <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
             <path d="M5 7V3h10v4M5 14H3V8h14v6h-2M5 11h10v6H5v-6z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
           </svg>
-          <span>Print Refrigerator Sheet</span>
+          <span id="print-fridge-sheet-label">Print Refrigerator Sheet</span>
         </button>
       </nav>
     </div>
@@ -71,33 +79,34 @@
     <!-- Hero Editorial Split -->
     <section class="hero-dossier" aria-labelledby="hero-main-heading">
       <div class="hero-copy-column">
-        <h1 id="hero-main-heading" class="hero-heading">Hospital discharge instructions translated into safe, Grade 5 patient care plans.</h1>
+        <h1 id="hero-main-heading" class="hero-heading">Hospital discharge instructions explained with a medication safety workbench.</h1>
         <p class="hero-lead">
           Hospital discharge summaries average a Grade 11 to 14 reading level packed with Latin dosing shorthand (<code>PO BID q12h PRN</code>), complex lab markers (<code>eGFR</code>, <code>HbA1c</code>, <code>SpO2</code>), and unflagged over-the-counter medication hazards. ClinNote converts raw clinical notes into plain English and Spanish instructions, builds a 24-hour dosing clock, screens for OTC pharmacokinetic collisions, and prints a one-page refrigerator safety schedule.
         </p>
 
         <div class="hero-telemetry-bar" role="region" aria-label="Readability telemetry metrics">
           <div class="telemetry-cell">
-            <strong id="metric-grade-before" class="telemetry-val tabular-nums">Grade 12.4</strong>
-            <span class="telemetry-caption">Source Clinical Readability</span>
+            <strong id="metric-grade-before" class="telemetry-val tabular-nums">Pending</strong>
+            <span class="telemetry-caption">Source Grade Estimate</span>
           </div>
           <div class="telemetry-cell telemetry-highlight">
-            <strong id="metric-grade-after" class="telemetry-val tabular-nums">Grade 5.6</strong>
-            <span class="telemetry-caption">Translated Patient Level</span>
+            <strong id="metric-grade-after" class="telemetry-val tabular-nums">Pending</strong>
+            <span class="telemetry-caption">Output Formula Score</span>
           </div>
           <div class="telemetry-cell">
-            <strong id="metric-clarity-gain" class="telemetry-val tabular-nums">+58%</strong>
-            <span class="telemetry-caption">Comprehension Clarity Gain</span>
+            <strong id="metric-clarity-gain" class="telemetry-val tabular-nums">Pending</strong>
+            <span class="telemetry-caption">Readability Score Change</span>
           </div>
           <div class="telemetry-cell">
-            <strong id="metric-jargon-count" class="telemetry-val tabular-nums">8 terms -&gt; 0</strong>
-            <span class="telemetry-caption">Clinical Jargon Eliminated</span>
+            <strong id="metric-jargon-count" class="telemetry-val tabular-nums">Pending</strong>
+            <span class="telemetry-caption">Detected Lexicon Occurrences</span>
           </div>
           <div class="telemetry-cell">
-            <strong id="metric-syllable-density" class="telemetry-val tabular-nums">1.76 -&gt; 1.38 syl/w</strong>
+            <strong id="metric-syllable-density" class="telemetry-val tabular-nums">Pending</strong>
             <span class="telemetry-caption">Syllable-per-Word Density</span>
           </div>
         </div>
+        <p class="metric-method-note">Scores use the English Flesch-Kincaid formula with estimated syllables, including on Spanish text. Spanish scores are not validated reading grades. Counts include explained terms kept in parentheses.</p>
       </div>
 
       <figure class="hero-figure-card">
@@ -204,9 +213,9 @@
           </div>
         </div>
 
-        <!-- Right Column: Plain-Language Grade 5-6 Patient Guide (EN / ES) -->
+        <!-- Right Column: Explained Patient Guide (EN / ES) -->
         <div class="patient-plain-panel">
-          <h3 class="panel-heading">Plain-Language Patient Care Guide (Grade 5 to 6 Target)</h3>
+          <h3 class="panel-heading">Plain-Language Patient Care Guide</h3>
           <div id="plain-patient-note-display" class="plain-output-box" aria-live="polite"></div>
 
           <div class="lexicon-table-wrap">
@@ -258,7 +267,7 @@
 
       <!-- 24-Hour Interactive SVG Timeline -->
       <div class="svg-timeline-card">
-        <h3 class="panel-heading">24-Hour Dosing &amp; Absorption Separation Clock (06:00 to 22:00)</h3>
+        <h3 class="panel-heading">24-Hour Dosing &amp; Absorption Separation Clock (00:00 to 22:00)</h3>
         <div id="medication-svg-stage" class="svg-stage-wrap"></div>
       </div>
 
@@ -289,13 +298,71 @@
           <div class="triage-card-top">
             <strong id="triage-disposition-code" class="triage-code-badge">ROUTINE HOME CARE</strong>
             <span id="triage-urgency-score" class="triage-score-pill tabular-nums">Urgency 10/100</span>
+            <span id="triage-active-symptom-count" class="triage-score-pill tabular-nums">Selected symptoms 0</span>
           </div>
           <p id="triage-rationale-text" class="triage-rationale"></p>
           <div class="triage-action-box">
             <strong>Next Action Step:</strong>
             <p id="triage-action-steps"></p>
+            <p id="triage-uncertainty-advice">If in doubt, call emergency services (911).</p>
           </div>
         </aside>
+      </div>
+    </section>
+
+    <!-- Deterministic Evaluation & Failure-Mode Benchmark Drawer -->
+    <section class="evaluation-section" aria-labelledby="evaluation-heading">
+      <div class="section-header-row">
+        <div>
+          <h2 id="evaluation-heading" class="section-heading">Evaluation &amp; Failure-Mode Benchmark</h2>
+          <p class="section-sub">
+            A deterministic benchmark recomputed live in your browser from a frozen, hand-labeled synthetic corpus.
+            Numbers below come from the same engine functions the workbench uses, not from stored screenshots.
+          </p>
+        </div>
+        <button type="button" id="run-evaluation-btn" class="action-btn-primary">Run benchmark again</button>
+      </div>
+
+      <div id="evaluation-drawer" class="evaluation-drawer" hidden>
+        <div class="eval-tablist" role="tablist" aria-label="Evaluation report views">
+          <button type="button" role="tab" class="eval-tab is-active" data-eval-tab="metrics" aria-selected="true" aria-controls="eval-panel-metrics" id="eval-tab-metrics">Metrics</button>
+          <button type="button" role="tab" class="eval-tab" data-eval-tab="baseline" aria-selected="false" aria-controls="eval-panel-baseline" id="eval-tab-baseline" tabindex="-1">Baseline</button>
+          <button type="button" role="tab" class="eval-tab" data-eval-tab="failures" aria-selected="false" aria-controls="eval-panel-failures" id="eval-tab-failures" tabindex="-1">Failure conditions</button>
+          <button type="button" role="tab" class="eval-tab" data-eval-tab="cases" aria-selected="false" aria-controls="eval-panel-cases" id="eval-tab-cases" tabindex="-1">Case detail</button>
+          <button type="button" role="tab" class="eval-tab" data-eval-tab="guardrails" aria-selected="false" aria-controls="eval-panel-guardrails" id="eval-tab-guardrails" tabindex="-1">Guardrails</button>
+        </div>
+
+        <div id="eval-panel-metrics" class="eval-panel" role="tabpanel" aria-labelledby="eval-tab-metrics" tabindex="0">
+          <div id="eval-metrics-grid" class="eval-metrics-grid" aria-live="polite"></div>
+          <h3 class="panel-heading">Readability by preset scenario</h3>
+          <div class="table-scroll-container">
+            <table class="lexicon-table eval-table">
+              <thead><tr><th scope="col">Scenario</th><th scope="col">Language</th><th scope="col">Grade before</th><th scope="col">Grade after</th><th scope="col">Jargon removed</th></tr></thead>
+              <tbody id="eval-readability-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="eval-panel-baseline" class="eval-panel" role="tabpanel" aria-labelledby="eval-tab-baseline" tabindex="0" hidden>
+          <div id="eval-baseline-body" aria-live="polite"></div>
+        </div>
+
+        <div id="eval-panel-failures" class="eval-panel" role="tabpanel" aria-labelledby="eval-tab-failures" tabindex="0" hidden>
+          <div id="eval-failures-body" aria-live="polite"></div>
+        </div>
+
+        <div id="eval-panel-cases" class="eval-panel" role="tabpanel" aria-labelledby="eval-tab-cases" tabindex="0" hidden>
+          <div class="table-scroll-container">
+            <table class="lexicon-table eval-table">
+              <thead><tr><th scope="col">Case</th><th scope="col">Expected</th><th scope="col">Predicted</th><th scope="col">Result</th></tr></thead>
+              <tbody id="eval-cases-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="eval-panel-guardrails" class="eval-panel" role="tabpanel" aria-labelledby="eval-tab-guardrails" tabindex="0" hidden>
+          <div id="eval-guardrails-body"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -345,7 +412,7 @@
           <strong>100% Client-Side Privacy Architecture (Zero PHI Transmission):</strong> ClinNote executes its entire 38-term clinical NLP de-jargonizer, Flesch-Kincaid readability engine, 24-hour dosing timeline, and pharmacokinetic collision matrix locally inside your browser using pure JavaScript ES modules. A strict <code>Content-Security-Policy</code> with <code>connect-src 'none'</code> guarantees that zero patient health information (PHI) or custom discharge text is ever transmitted to any external server or cloud API.
         </p>
         <p class="footer-copy">
-          <strong>STEM2Connect AI Hackathon 2026 Attribution:</strong> Built by Aariv Patel for the STEM2Connect AI Hackathon 2026. All clinical pharmacokinetic rules, Flesch-Kincaid formulas, and unit tests are deterministically verified. ClinNote is an educational clinical communication workbench and does not replace direct physician or pharmacist consultation.
+          <strong>Educational Use &amp; Clinical Disclaimer:</strong> ClinNote is an educational clinical communication workbench. Its rules, readability formulas, and benchmark suite are deterministic and unit tested, but the tool does not diagnose, prescribe, or replace direct physician, pharmacist, or interpreter consultation. The Evaluation drawer documents the conditions under which the engine fails.
         </p>
       </div>
       <div class="footer-meta-col">

@@ -11,8 +11,10 @@ import {
   applyAppAction,
   buildUiViewState
 } from './clinnote-engine.js';
+import { runEvaluation } from './evaluation.js';
 
 let appState = createInitialAppState();
+let evaluationReport = null;
 
 function escapeHtml(raw) {
   return String(raw || '')
@@ -40,7 +42,7 @@ function renderSvgTimeline(scheduleReport) {
   const slots = scheduleReport.slots;
   const colWidth = 122;
   const startX = 48;
-  const svgWidth = 890;
+  const svgWidth = Math.max(890, startX + (slots.length - 1) * colWidth + 64);
   const svgHeight = 200;
 
   let nodesMarkup = '';
@@ -103,17 +105,196 @@ function renderSvgTimeline(scheduleReport) {
   });
 
   return `
-    <svg class="timeline-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="24-hour clinical medication dosing timeline from 06:00 to 22:00">
+    <svg class="timeline-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="24-hour clinical medication dosing timeline from ${slots[0].hour} to ${slots[slots.length - 1].hour}">
       <rect x="8" y="8" width="${svgWidth - 16}" height="${svgHeight - 16}" rx="6" fill="#EFECE4" stroke="#D5D0C5" stroke-width="1" />
-      <line x1="${startX}" y1="76" x2="${startX + 6 * colWidth}" y2="76" stroke="#C5BFB2" stroke-width="2" />
+      <line x1="${startX}" y1="76" x2="${startX + (slots.length - 1) * colWidth}" y2="76" stroke="#C5BFB2" stroke-width="2" />
       ${nodesMarkup}
     </svg>
   `;
 }
 
+function formatEvalNumber(value) {
+  return Number(value).toFixed(4);
+}
+
+function renderEvaluation() {
+  const clock =
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? () => performance.now()
+      : () => Date.now();
+  evaluationReport = runEvaluation({ nowFn: clock, repeats: 60 });
+  const r = evaluationReport;
+  const m = r.metrics;
+
+  const metricCards = [
+    { label: 'Term detection F1', value: formatEvalNumber(m.termDetectionF1), note: `Precision ${formatEvalNumber(m.termPrecision)} / Recall ${formatEvalNumber(m.termRecall)}` },
+    { label: 'Term detection Brier', value: formatEvalNumber(m.termDetectionBrier), note: 'Lower is better (0 = exact)' },
+    { label: 'Collision detection F1', value: formatEvalNumber(m.collisionF1), note: `${r.corpus.collisionCases} labeled regimens` },
+    { label: 'Triage accuracy', value: formatEvalNumber(m.triageAccuracy), note: `F1 ${formatEvalNumber(m.triageF1)} / Brier ${formatEvalNumber(m.triageBrier)}` },
+    { label: 'Mean output formula score', value: m.meanGradeAfter.toFixed(2), note: `Mean source minus output ${m.meanGradeDrop.toFixed(2)}; Spanish estimate unvalidated` },
+    { label: 'Latency per operation', value: `${m.meanMsPerOperation} ms`, note: `${m.meanMsPerFullSuite} ms for the full suite` },
+    { label: 'Combined Brier', value: formatEvalNumber(m.combinedBrier), note: 'Mean of term and triage Brier' },
+    { label: 'Failure probes confirmed', value: `${r.failureModes.filter((f) => f.status === 'confirmed').length}/${r.failureModes.length}`, note: 'Each condition is re-probed live' }
+  ];
+  setHtml(
+    'eval-metrics-grid',
+    metricCards
+      .map(
+        (c) => `
+        <article class="eval-metric-card">
+          <strong class="eval-metric-value tabular-nums">${escapeHtml(c.value)}</strong>
+          <span class="eval-metric-label">${escapeHtml(c.label)}</span>
+          <span class="eval-metric-note">${escapeHtml(c.note)}</span>
+        </article>`
+      )
+      .join('')
+  );
+
+  setHtml(
+    'eval-readability-tbody',
+    r.tasks.readability.rows
+      .map(
+        (row) => `
+        <tr class="lexicon-row">
+          <td class="mono-cell">${escapeHtml(row.scenarioId)}</td>
+          <td>${escapeHtml(row.lang.toUpperCase())}</td>
+          <td class="tabular-nums">${escapeHtml(row.gradeBefore.toFixed(1))}</td>
+          <td class="tabular-nums">${escapeHtml(row.gradeAfter.toFixed(1))}</td>
+          <td class="tabular-nums">${escapeHtml(`${row.jargonBefore} -> ${row.jargonAfter}`)}</td>
+        </tr>`
+      )
+      .join('')
+  );
+
+  const b = r.baseline;
+  const cmp = r.comparison;
+  setHtml(
+    'eval-baseline-body',
+    `
+    <div class="eval-baseline-grid">
+      <div class="eval-baseline-card">
+        <h3 class="panel-heading">${escapeHtml(b.label)}</h3>
+        <p>${escapeHtml(b.note)}</p>
+        <ul class="eval-list">
+          <li>Term detection F1: <strong class="tabular-nums">${b.termDetectionF1}</strong></li>
+          <li>Collision detection F1: <strong class="tabular-nums">${b.collisionF1}</strong></li>
+          <li>Triage accuracy: <strong class="tabular-nums">${b.triageAccuracy}</strong></li>
+          <li>Triage F1: <strong class="tabular-nums">${b.triageF1}</strong></li>
+          <li>Mean grade after: <strong>${escapeHtml(String(b.meanGradeAfter))}</strong></li>
+          <li>Latency: <strong class="tabular-nums">${b.latencyMs} ms</strong> (no work performed)</li>
+        </ul>
+      </div>
+      <div class="eval-baseline-card eval-gain-card">
+        <h3 class="panel-heading">Measured gain over baseline</h3>
+        <ul class="eval-list">
+          <li>Term F1: <strong class="tabular-nums">+${cmp.termDetectionF1Gain}</strong></li>
+          <li>Collision F1: <strong class="tabular-nums">+${cmp.collisionF1Gain}</strong></li>
+          <li>Triage accuracy: <strong class="tabular-nums">+${cmp.triageAccuracyGain}</strong></li>
+          <li>Triage F1: <strong class="tabular-nums">+${cmp.triageF1Gain}</strong></li>
+        </ul>
+        <p><strong>Cost:</strong> ${escapeHtml(cmp.cost)}</p>
+        <p><strong>Latency trade-off:</strong> ${escapeHtml(cmp.latencyVsBaseline)}</p>
+      </div>
+    </div>
+    <p class="eval-footnote">Corpus: ${r.corpus.termCases} term cases, ${r.corpus.collisionCases} collision cases, ${r.corpus.triageCases} triage cases, ${r.corpus.readabilityRows} readability rows, ${r.corpus.lexiconEntries} lexicon entries, ${r.corpus.otcAddons} OTC add-ons, ${r.corpus.scenarios} scenarios. Suite version ${escapeHtml(r.version)} dated ${escapeHtml(r.date)}.</p>`
+  );
+
+  setHtml(
+    'eval-failures-body',
+    `<p class="eval-intro">Every condition below is a real, probed limit of the engine. The suite executes each probe on every run and reports whether the documented behavior still holds.</p>
+    <div class="eval-failures-list">
+      ${r.failureModes
+        .map(
+          (f) => `
+        <article class="eval-failure-card" data-status="${escapeHtml(f.status)}">
+          <div class="eval-failure-head">
+            <h3 class="eval-failure-title">${escapeHtml(f.title)}</h3>
+            <span class="eval-status-pill">${escapeHtml(f.status)}</span>
+          </div>
+          <p><strong>Condition:</strong> ${escapeHtml(f.detail)}</p>
+          <p><strong>Guardrail:</strong> ${escapeHtml(f.mitigation)}</p>
+          <p class="eval-probe"><strong>Probe output:</strong> <span class="mono-text">${escapeHtml(JSON.stringify(f.observed))}</span></p>
+        </article>`
+        )
+        .join('')}
+    </div>`
+  );
+
+  const caseRows = [
+    ...r.tasks.term.perCase.map((c) => ({
+      label: c.label,
+      expected: c.expected.join(', ') || '(none)',
+      predicted: c.predicted.join(', ') || '(none)',
+      correct: c.correct,
+      extra: c.outOfScopeExpected.length
+        ? `Out-of-lexicon misses: ${c.outOfScopeExpected.join(', ')}`
+        : `TP ${c.tp} / FP ${c.fp} / FN ${c.fn}`
+    })),
+    ...r.tasks.collision.perCase.map((c) => ({
+      label: c.label, expected: c.expected.join(', ') || '(none)', predicted: c.predicted.join(', ') || '(none)', correct: c.correct, extra: `Reported codes: ${c.allCodes ? c.allCodes.join(', ') || '(none)' : '(none)'}`
+    })),
+    ...r.tasks.triage.perCase.map((c) => ({
+      label: c.label, expected: c.expected, predicted: c.predicted, correct: c.correct, extra: `Urgency ${c.urgencyScore}/100, ${c.activeSymptomCount} symptoms`
+    }))
+  ];
+  setHtml(
+    'eval-cases-tbody',
+    caseRows
+      .map(
+        (c) => `
+        <tr class="lexicon-row">
+          <td>${escapeHtml(c.label)}<br/><span class="eval-row-extra">${escapeHtml(c.extra)}</span></td>
+          <td class="mono-cell">${escapeHtml(c.expected)}</td>
+          <td class="mono-cell">${escapeHtml(c.predicted)}</td>
+          <td><span class="eval-result-pill" data-correct="${String(c.correct)}">${c.correct ? 'match' : 'miss'}</span></td>
+        </tr>`
+      )
+      .join('')
+  );
+
+  setHtml(
+    'eval-guardrails-body',
+    `<ul class="eval-list eval-guardrail-list">${r.disclaimers
+      .map((d) => `<li>${escapeHtml(d)}</li>`)
+      .join('')}</ul>
+    <p class="eval-footnote">This benchmark is runnable as <code>node scripts/run-evaluation.mjs</code> and is covered by automated unit and DOM tests. No number in this drawer is a decorative placeholder.</p>`
+  );
+}
+
+function setActiveEvalTab(tabName, focusTab = false) {
+  const tabs = document.querySelectorAll('[data-eval-tab]');
+  tabs.forEach((tab) => {
+    const active = tab.getAttribute('data-eval-tab') === tabName;
+    tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-selected', String(active));
+    tab.setAttribute('tabindex', active ? '0' : '-1');
+    if (active && focusTab) tab.focus();
+  });
+  const panels = {
+    metrics: 'eval-panel-metrics',
+    baseline: 'eval-panel-baseline',
+    failures: 'eval-panel-failures',
+    cases: 'eval-panel-cases',
+    guardrails: 'eval-panel-guardrails'
+  };
+  for (const [name, id] of Object.entries(panels)) {
+    const panel = document.getElementById(id);
+    if (panel) panel.hidden = name !== tabName;
+  }
+}
+
 function renderApp() {
   const view = buildUiViewState(appState);
   const isEs = Object.is(view.lang, 'es');
+
+  const printButton = document.getElementById('print-fridge-sheet-btn');
+  if (printButton) {
+    printButton.disabled = view.usingCustomText;
+    printButton.setAttribute('aria-disabled', String(view.usingCustomText));
+  }
+  setText('print-fridge-sheet-label', view.usingCustomText
+    ? isEs ? 'Impresion desactivada para texto personalizado' : 'Print disabled for custom text'
+    : isEs ? 'Imprimir hoja para el refrigerador' : 'Print Refrigerator Sheet');
 
   // Update language buttons
   document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
@@ -142,10 +323,21 @@ function renderApp() {
   // Readability telemetry metrics
   setText('metric-grade-before', `Grade ${view.nlpAnalysis.gradeBefore.toFixed(1)}`);
   setText('metric-grade-after', `Grade ${view.nlpAnalysis.gradeAfter.toFixed(1)}`);
-  setText('metric-clarity-gain', `+${view.nlpAnalysis.clarityGainPct}%`);
+  const clarityGainPct = view.nlpAnalysis.clarityGainPct;
+  setText('metric-clarity-gain', clarityGainPct === null
+    ? 'n/a'
+    : `${clarityGainPct > 0 ? '+' : ''}${clarityGainPct}%`);
+  const clarityGainMetric = document.getElementById('metric-clarity-gain');
+  if (clarityGainMetric) {
+    clarityGainMetric.setAttribute('title', clarityGainPct === null
+      ? isEs
+        ? 'Porcentaje no disponible cuando el nivel de lectura de origen es cero o negativo.'
+        : 'Percentage unavailable when the source reading grade is zero or negative.'
+      : '');
+  }
   setText(
     'metric-jargon-count',
-    `${view.nlpAnalysis.jargonCountBefore} terms -> 0`
+    `${view.nlpAnalysis.jargonCountBefore} -> ${view.nlpAnalysis.jargonCountAfter} terms`
   );
   setText(
     'metric-syllable-density',
@@ -343,12 +535,23 @@ function renderApp() {
     dispBox.setAttribute('data-tone', view.triageReport.tone);
   }
   setText('triage-disposition-code', view.triageReport.disposition);
-  setText('triage-urgency-score', `Urgency ${view.triageReport.urgencyScore}/100`);
+  setText('triage-urgency-score', `${isEs ? 'Urgencia' : 'Urgency'} ${view.triageReport.urgencyScore}/100`);
+  setText('triage-active-symptom-count', `${isEs ? 'Sintomas seleccionados' : 'Selected symptoms'} ${view.triageReport.activeSymptomCount}`);
   setText('triage-headline-text', view.triageReport.headline);
   setText('triage-rationale-text', view.triageReport.rationale);
   setText('triage-action-steps', view.triageReport.actionSteps);
+  setText('triage-uncertainty-advice', isEs
+    ? 'Si tiene dudas, llame a los servicios de emergencia (911).'
+    : 'If in doubt, call emergency services (911).');
 
   // Printable Bilingual Refrigerator Sheet
+  if (view.usingCustomText) {
+    setText('print-sheet-title', isEs ? 'Hoja de medicamentos no disponible para texto personalizado' : 'Medication sheet unavailable for custom text');
+    setText('print-sheet-plain-en', 'No refrigerator medication sheet is available for custom text. Ask a clinician or pharmacist to confirm your note and medication instructions.');
+    setText('print-sheet-plain-es', 'No hay hoja de medicamentos para texto personalizado. Pida a un medico o farmaceutico que confirme su nota y las instrucciones de sus medicamentos.');
+    setHtml('print-schedule-tbody', '');
+    return;
+  }
   setText('print-sheet-title', `${view.scenarioTitle} (${view.scenarioCode})`);
   setText('print-sheet-plain-en', getScenarioPlainByLang(view.scenarioId, 'en'));
   setText('print-sheet-plain-es', getScenarioPlainByLang(view.scenarioId, 'es'));
@@ -453,8 +656,59 @@ function bindEvents() {
 
     const printBtn = event.target.closest('#print-fridge-sheet-btn');
     if (printBtn) {
+      if (buildUiViewState(appState).usingCustomText) return;
       window.print();
+      return;
     }
+
+    const evalToggle = event.target.closest('#open-evaluation-btn');
+    if (evalToggle) {
+      const drawer = document.getElementById('evaluation-drawer');
+      if (drawer) {
+        const willOpen = drawer.hidden;
+        drawer.hidden = !willOpen;
+        evalToggle.setAttribute('aria-expanded', String(willOpen));
+        if (willOpen) {
+          renderEvaluation();
+          setActiveEvalTab('metrics', true);
+        }
+      }
+      return;
+    }
+
+    const runEvalBtn = event.target.closest('#run-evaluation-btn');
+    if (runEvalBtn) {
+      const drawer = document.getElementById('evaluation-drawer');
+      const toggle = document.getElementById('open-evaluation-btn');
+      if (drawer && drawer.hidden) {
+        drawer.hidden = false;
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      }
+      renderEvaluation();
+      const activeTab = document.querySelector('[data-eval-tab][aria-selected="true"]');
+      setActiveEvalTab(activeTab ? activeTab.getAttribute('data-eval-tab') : 'metrics', false);
+      return;
+    }
+
+    const evalTab = event.target.closest('[data-eval-tab]');
+    if (evalTab) {
+      setActiveEvalTab(evalTab.getAttribute('data-eval-tab'), false);
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    const tab = event.target.closest && event.target.closest('[data-eval-tab]');
+    if (!tab) return;
+    const tabs = [...document.querySelectorAll('[data-eval-tab]')];
+    const idx = tabs.indexOf(tab);
+    let next = -1;
+    if (event.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (idx - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    setActiveEvalTab(tabs[next].getAttribute('data-eval-tab'), true);
   });
 
   const customInput = document.getElementById('custom-discharge-textarea');

@@ -227,6 +227,13 @@ body {
   background-color: #095C47;
 }
 
+.action-btn-primary:disabled {
+  background-color: var(--ink-secondary);
+  border-color: var(--ink-secondary);
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Main Workbench Shell */
 .workbench-shell {
   max-width: 1280px;
@@ -1140,6 +1147,7 @@ body {
 
 .triage-card-top {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
@@ -1293,6 +1301,289 @@ body {
   }
 }
 
+/* ===================================================================
+   Nov 15 Evaluation & Failure-Mode Benchmark Drawer
+   Clinical editorial system: hairline borders, no gradients, no emoji,
+   tabular numerals, 1px perimeter borders with a 3px structural top bar.
+   =================================================================== */
+
+.action-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-elevated);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out-expo);
+}
+
+.action-btn-secondary:hover {
+  background: var(--safe-tint);
+}
+
+.action-btn-secondary[aria-expanded='true'] {
+  background: var(--ink-primary);
+  color: var(--bg-ivory);
+}
+
+.action-btn-secondary[aria-expanded='true']:hover {
+  background: var(--ink-secondary);
+}
+
+.evaluation-section {
+  margin: 0 0 44px;
+  padding: 28px;
+  border: 1px solid var(--border-hairline);
+  border-top: 3px solid var(--safe-emerald);
+  background: var(--surface-card);
+  border-radius: 4px;
+}
+
+.evaluation-section .section-header-row {
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.evaluation-section .section-sub {
+  max-width: 78ch;
+  line-height: 1.6;
+}
+
+.evaluation-drawer {
+  margin-top: 22px;
+  border: 1px solid var(--border-hairline);
+  background: var(--surface-elevated);
+  border-radius: 4px;
+}
+
+.evaluation-drawer[hidden],
+.eval-panel[hidden] {
+  display: none;
+}
+
+.eval-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--border-hairline);
+  background: var(--surface-card);
+}
+
+.eval-tab {
+  appearance: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--ink-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 13px 17px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.eval-tab:hover {
+  background: var(--safe-tint);
+}
+
+.eval-tab.is-active {
+  color: var(--ink-primary);
+  border-bottom-color: var(--safe-emerald);
+  background: var(--surface-elevated);
+}
+
+.eval-tab:focus-visible {
+  outline: 2px solid var(--safe-emerald);
+  outline-offset: -3px;
+}
+
+.eval-panel {
+  padding: 22px;
+}
+
+.eval-panel:focus-visible {
+  outline: 2px solid var(--safe-emerald);
+  outline-offset: -3px;
+}
+
+.eval-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.eval-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--border-hairline);
+  border-top: 3px solid var(--safe-emerald);
+  background: var(--bg-ivory);
+  border-radius: 3px;
+  min-width: 0;
+}
+
+.eval-metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.42rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  overflow-wrap: anywhere;
+}
+
+.eval-metric-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-secondary);
+  line-height: 1.35;
+}
+
+.eval-metric-note {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.eval-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.eval-table th,
+.eval-table td {
+  font-size: 0.82rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.eval-row-extra {
+  display: inline-block;
+  margin-top: 5px;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.eval-baseline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.eval-baseline-card {
+  padding: 18px;
+  border: 1px solid var(--border-hairline);
+  background: var(--bg-ivory);
+  border-radius: 3px;
+  min-width: 0;
+}
+
+.eval-gain-card {
+  border-top: 3px solid var(--safe-emerald);
+}
+
+.eval-baseline-card p,
+.eval-intro,
+.eval-footnote,
+.eval-failure-card p {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ink-secondary);
+  overflow-wrap: anywhere;
+}
+
+.eval-list {
+  margin: 10px 0;
+  padding-left: 20px;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: var(--ink-secondary);
+}
+
+.eval-list strong {
+  color: var(--ink-primary);
+}
+
+.eval-guardrail-list li {
+  margin-bottom: 8px;
+}
+
+.eval-failures-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.eval-failure-card {
+  padding: 17px;
+  border: 1px solid var(--border-hairline);
+  border-top: 3px solid var(--caution-amber);
+  background: var(--bg-ivory);
+  border-radius: 3px;
+  min-width: 0;
+}
+
+.eval-failure-card[data-status='unexpected'] {
+  border-top-color: var(--critical-crimson);
+}
+
+.eval-failure-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.eval-failure-title {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.eval-status-pill,
+.eval-result-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid var(--safe-emerald);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #095C47;
+  background: var(--safe-tint);
+  white-space: nowrap;
+}
+
+.eval-result-pill[data-correct='false'] {
+  border-color: var(--caution-amber);
+  background: var(--caution-tint);
+  color: #8A4406;
+}
+
+.eval-probe {
+  font-size: 0.8rem !important;
+}
+
+.eval-panel .table-scroll-container {
+  max-height: 420px;
+  overflow: auto;
+}
+
 /* Responsive Breakpoints */
 @media (max-width: 1024px) {
   .hero-dossier,
@@ -1308,6 +1599,14 @@ body {
   .hero-telemetry-bar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .eval-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .eval-failures-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1320,6 +1619,58 @@ body {
   .dejargonizer-workbench,
   .triage-checker-section {
     padding: 18px;
+  }
+
+  .evaluation-section {
+    padding: 18px 14px;
+  }
+
+  .eval-panel {
+    padding: 16px 12px;
+  }
+
+  .eval-metrics-grid,
+  .eval-baseline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eval-tablist {
+    flex-direction: column;
+  }
+
+  .eval-tab {
+    width: 100%;
+    text-align: left;
+    border-bottom: 1px solid var(--border-hairline);
+    border-left: 3px solid transparent;
+  }
+
+  .eval-tab.is-active {
+    border-bottom-color: var(--border-hairline);
+    border-left-color: var(--safe-emerald);
+  }
+
+  .evaluation-section .section-header-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 400px) {
+  .header-controls,
+  .header-inner,
+  .hero-dossier,
+  .evaluation-section,
+  .site-footer {
+    max-width: 100%;
+  }
+
+  .eval-metric-value {
+    font-size: 1.2rem;
+  }
+
+  .eval-panel,
+  .evaluation-section {
+    overflow-wrap: anywhere;
   }
 }
 

@@ -13,6 +13,8 @@ import {
   detectJargonMatches,
   computeReadabilityMetrics,
   dejargonizeClinicalText,
+  analyzeClinicalTransformation,
+  inspectMedicationIntervals,
   buildMedicationScheduleAndCollisions,
   evaluateSymptomTriage,
   createInitialAppState,
@@ -24,8 +26,9 @@ test('01. supported languages include English (en) and Spanish (es)', () => {
   assert.deepEqual(SUPPORTED_LANGUAGES, ['en', 'es']);
 });
 
-test('02. dosing clock hours cover all 7 standard 24-hour clinical checkpoints', () => {
+test('02. dosing clock hours cover all 8 standard 24-hour clinical checkpoints', () => {
   assert.deepEqual(DOSING_CLOCK_HOURS, [
+    '00:00',
     '06:00',
     '08:00',
     '12:00',
@@ -212,37 +215,42 @@ test('24. computeReadabilityMetrics returns zeros for empty or punctuation-only 
   assert.equal(m2.fleschKincaidGrade, 0);
 });
 
-test('25. computeReadabilityMetrics clamps minimum Flesch-Kincaid grade to 3.5', () => {
+test('25. a simple sentence keeps its actual uncapped Flesch-Kincaid grade', () => {
   const m = computeReadabilityMetrics('Take one pill by mouth now');
   assert.equal(m.sentenceCount, 1);
-  assert.equal(m.fleschKincaidGrade, 3.5);
+  assert.equal(m.wordCount, 6);
+  assert.equal(m.syllableCount, 6);
+  assert.ok(Math.abs(m.fleschKincaidGrade - (-1.45)) < 1e-12);
 });
 
-test('26. computeReadabilityMetrics clamps maximum Flesch-Kincaid grade to 18.0 on dense clinical prose', () => {
+test('26. dense clinical prose keeps the formula result without a jargon bonus or ceiling', () => {
   const m = computeReadabilityMetrics(
     'Contraindicated nephrotoxicity hyperkalemia hypoglycemia orthostatic hypotension intercostal retractions anticoagulation arthroplasty malabsorption postprandial'
   );
-  assert.equal(m.fleschKincaidGrade, 18.0);
+  const expected = 0.39 * m.wordCount / m.sentenceCount + 11.8 * m.syllableCount / m.wordCount - 15.59;
+  assert.equal(m.fleschKincaidGrade, expected);
+  assert.ok(m.fleschKincaidGrade > 18);
 });
 
 test('27. dejargonizeClinicalText handles empty and null input in EN and ES', () => {
   const en = dejargonizeClinicalText('', 'en');
   assert.equal(en.lang, 'en');
-  assert.equal(en.clarityGainPct, 0);
+  assert.equal(en.clarityGainPct, null);
 
   const es = dejargonizeClinicalText(null, 'es');
   assert.equal(es.lang, 'es');
-  assert.equal(es.clarityGainPct, 0);
+  assert.equal(es.clarityGainPct, null);
 });
 
-test('28. dejargonizeClinicalText lowers pediatric-asthma-er grade level to Grade 5-6 in English', () => {
-  const s = getScenarioById('pediatric-asthma-er');
-  const res = dejargonizeClinicalText(s.rawClinicalNote, 'en');
-  assert.ok(res.jargonCountBefore >= 6);
-  assert.equal(res.jargonCountAfter, 0);
-  assert.ok(res.gradeBefore > res.gradeAfter);
-  assert.ok(res.gradeAfter >= 4.8 && res.gradeAfter <= 6.4);
-  assert.ok(res.clarityGainPct >= 30);
+test('28. pediatric substitution measures the exact resulting text and retains explained tokens', () => {
+  const scenario = getScenarioById('pediatric-asthma-er');
+  const res = dejargonizeClinicalText(scenario.rawClinicalNote, 'en');
+  assert.deepEqual(res.beforeMetrics, computeReadabilityMetrics(res.originalText));
+  assert.deepEqual(res.afterMetrics, computeReadabilityMetrics(res.translatedText));
+  assert.equal(res.gradeBefore, res.beforeMetrics.fleschKincaidGrade);
+  assert.equal(res.gradeAfter, res.afterMetrics.fleschKincaidGrade);
+  assert.equal(res.jargonCountAfter, res.afterMetrics.jargonCount);
+  assert.ok(res.jargonCountAfter > 0);
 });
 
 test('29. dejargonizeClinicalText translates pediatric-asthma-er into Spanish with contextual phrase rules', () => {
@@ -277,11 +285,12 @@ test('31. dejargonizeClinicalText translates postop-anticoag-ortho and hypertens
   assert.ok(thyroidEs.translatedText.includes('con el estomago vacio'));
 });
 
-test('32. dejargonizeClinicalText handles short simple custom text without jargon', () => {
+test('32. unchanged custom text reports equal grades and zero readability change', () => {
   const res = dejargonizeClinicalText('Take water daily.', 'en');
+  assert.equal(res.translatedText, res.originalText);
   assert.equal(res.jargonCountBefore, 0);
-  assert.ok(res.gradeBefore > res.gradeAfter);
-  assert.ok(res.clarityGainPct >= 18);
+  assert.equal(res.gradeBefore, res.gradeAfter);
+  assert.equal(res.clarityGainPct, 0);
 });
 
 test('33. buildMedicationScheduleAndCollisions returns SAFE baseline when no OTC add-ons are active', () => {
@@ -289,7 +298,7 @@ test('33. buildMedicationScheduleAndCollisions returns SAFE baseline when no OTC
   assert.equal(report.collisionCount, 0);
   assert.equal(report.maxSeverityScore, 0);
   assert.equal(report.overallSafetyBand, 'SAFE');
-  assert.equal(report.slots.length, 7);
+  assert.equal(report.slots.length, 8);
   for (const slot of report.slots) {
     assert.equal(slot.hasCollision, false);
   }
@@ -575,4 +584,104 @@ test('51. buildUiViewState builds complete view state for preset and custom text
   const vCustom = buildUiViewState(s);
   assert.equal(vCustom.usingCustomText, true);
   assert.ok(vCustom.plainPatientParagraph.includes('por la boca'));
+});
+
+
+test('52. preset telemetry measures the exact visible paragraph in both languages', () => {
+  for (const scenario of CLINICAL_SCENARIOS) for (const lang of SUPPORTED_LANGUAGES) {
+    const view = buildUiViewState({ ...createInitialAppState(), scenarioId: scenario.id, lang });
+    assert.equal(view.nlpAnalysis.translatedText, view.plainPatientParagraph);
+    assert.deepEqual(view.nlpAnalysis.beforeMetrics, computeReadabilityMetrics(view.rawClinicalNote));
+    assert.deepEqual(view.nlpAnalysis.afterMetrics, computeReadabilityMetrics(view.plainPatientParagraph));
+    assert.equal(view.nlpAnalysis.jargonCountAfter, computeReadabilityMetrics(view.plainPatientParagraph).jargonCount);
+  }
+});
+
+test('53. decimal doses do not manufacture extra sentences and density is unrounded', () => {
+  const m = computeReadabilityMetrics('Take 2.5 mg by mouth. Check SpO2 at 94%.');
+  assert.equal(m.sentenceCount, 2);
+  assert.equal(m.wordCount, 9);
+  assert.equal(m.syllablesPerWord, m.syllableCount / m.wordCount);
+  assert.equal(m.wordsPerSentence, 4.5);
+});
+
+test('54. output measurement can report an increased grade without a minimum gain', () => {
+  const r = analyzeClinicalTransformation('Take water daily.', 'Administer anticoagulation prophylaxis and monitor nephrotoxicity.', 'en');
+  assert.ok(r.gradeAfter > r.gradeBefore);
+  assert.ok(r.clarityGainPct < 0);
+  assert.equal(r.afterMetrics.syllablesPerWord, r.afterMetrics.syllableCount / r.afterMetrics.wordCount);
+});
+
+test('readability percentages are unavailable for zero and negative source grades in both languages', () => {
+  for (const lang of ['en', 'es']) {
+    for (const source of ['', ' ', 'BID']) {
+      const result = dejargonizeClinicalText(source, lang);
+      assert.ok(result.gradeBefore <= 0);
+      assert.equal(result.clarityGainPct, null);
+    }
+    const result = analyzeClinicalTransformation('BID', 'Take medicine twice a day.', lang);
+    assert.ok(result.gradeBefore < 0);
+    assert.ok(result.gradeAfter > 0);
+    assert.equal(result.clarityGainPct, null);
+  }
+});
+
+test('55. the immediate-release pain dose has four strictly six-hour opportunities', () => {
+  const scenario = getScenarioById('postop-anticoag-ortho');
+  const med = scenario.medications.find((m) => m.id === 'med-acetaminophen');
+  assert.match(med.name, /Immediate-Release/);
+  assert.match(med.plainEn, /two.*325 mg.*650 mg.*at least 6 hours/);
+  assert.match(med.plainEs, /dos.*325 mg.*650 mg.*al menos 6 horas/);
+  assert.deepEqual(med.hours, ['00:00', '06:00', '12:00', '18:00']);
+  const check = inspectMedicationIntervals([med]);
+  assert.deepEqual(check.violations, []);
+  assert.deepEqual(check.checks[0].gapsHours, [6, 6, 6, 6]);
+  assert.equal(650 * med.hours.length, 2600);
+});
+
+test('56. the former four-hour dosing gap is detected by the real safety report', () => {
+  const med = getScenarioById('postop-anticoag-ortho').medications.find((m) => m.id === 'med-acetaminophen');
+  const originalHours = med.hours;
+  try {
+    med.hours = ['06:00', '12:00', '18:00', '22:00'];
+    const report = buildMedicationScheduleAndCollisions('postop-anticoag-ortho');
+    assert.equal(report.overallSafetyBand, 'CRITICAL');
+    assert.equal(report.intervalChecks.find((c) => c.medicationId === med.id).valid, false);
+    assert.ok(report.collisions.some((c) => c.code === COLLISION_TYPES.DOSE_INTERVAL));
+    assert.equal(report.slots.find((slot) => slot.hour === '22:00').hasCollision, true);
+  } finally {
+    med.hours = originalHours;
+  }
+});
+
+test('57. interval checks include midnight, duplicate doses and missing clock times', () => {
+  const med = { id: 'fixture', rawSig: 'Dose PO q6h PRN', hours: ['02:00', '22:00'] };
+  const overnight = inspectMedicationIntervals([med], med.hours);
+  assert.equal(overnight.violations[0].gapHours, 4);
+  assert.deepEqual(overnight.violations[0].hours, ['22:00', '02:00']);
+  const duplicate = inspectMedicationIntervals([{ ...med, hours: ['06:00', '06:00'] }]);
+  assert.equal(duplicate.violations[0].gapHours, 0);
+  const missing = inspectMedicationIntervals([{ ...med, hours: ['24:00', '09:00'] }]);
+  assert.ok(missing.violations.some((v) => v.code === COLLISION_TYPES.SCHEDULE_CLOCK_COVERAGE));
+});
+
+test('58. every prescription-only scenario passes actual interval checks', () => {
+  for (const scenario of CLINICAL_SCENARIOS) {
+    const report = buildMedicationScheduleAndCollisions(scenario.id);
+    assert.equal(report.overallSafetyBand, 'SAFE');
+    assert.ok(report.intervalChecks.every((check) => check.valid));
+  }
+});
+
+test('59. pediatric warning labels and triage use the discharge thresholds in both languages', () => {
+  const scenario = getScenarioById('pediatric-asthma-er');
+  const symptom = scenario.symptoms.find((sym) => sym.id === 'sym-spo2-drop');
+  assert.match(symptom.labelEn, /below 94%.*less than 4 hours/);
+  assert.match(symptom.labelEs, /menor a 94%.*antes de 4 horas/);
+  assert.equal(symptom.tier, 'EMERGENCY');
+  for (const lang of SUPPORTED_LANGUAGES) {
+    const report = evaluateSymptomTriage(scenario.id, [symptom.id], lang);
+    assert.equal(report.disposition, TRIAGE_DISPOSITIONS.EMERGENCY);
+    assert.equal(report.activeSymptomCount, 1);
+  }
 });

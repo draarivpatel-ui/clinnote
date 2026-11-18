@@ -7,6 +7,7 @@
 export const SUPPORTED_LANGUAGES = ['en', 'es'];
 
 export const DOSING_CLOCK_HOURS = [
+  '00:00',
   '06:00',
   '08:00',
   '12:00',
@@ -20,7 +21,9 @@ export const COLLISION_TYPES = {
   CRITICAL_CONTRAINDICATION: 'CRITICALCONTRAINDICATION',
   ABSORPTION_CHELATION: 'ABSORPTION_CHELATION',
   RENAL_TRIPLE_WHAMMY: 'RENAL_TRIPLE_WHAMMY',
-  SEDATION_STACK: 'SEDATION_STACK'
+  SEDATION_STACK: 'SEDATION_STACK',
+  DOSE_INTERVAL: 'DOSE_INTERVAL',
+  SCHEDULE_CLOCK_COVERAGE: 'SCHEDULE_CLOCK_COVERAGE'
 };
 
 export const TRIAGE_DISPOSITIONS = {
@@ -439,8 +442,8 @@ export const CLINICAL_SCENARIOS = [
       {
         id: 'sym-spo2-drop',
         tier: 'EMERGENCY',
-        labelEn: 'Home pulse oximeter SpO2 reading below 92% or rescue inhaler needed under 3 hours',
-        labelEs: 'Oximetro en casa con SpO2 menor a 92% o necesidad de inhalador antes de 3 horas',
+        labelEn: 'Home pulse oximeter SpO2 reading below 94% or rescue inhaler needed in less than 4 hours',
+        labelEs: 'Oximetro en casa con SpO2 menor a 94% o necesidad de inhalador antes de 4 horas',
         rationaleEn: 'Hypoxemia or refractory bronchospasm requires emergency nebulized therapy.',
         rationaleEs: 'Hipoxemia o broncoespasmo refractario requiere tratamiento de emergencia.'
       },
@@ -578,11 +581,11 @@ export const CLINICAL_SCENARIOS = [
     patientContextEn: 'Post-operative day 2 total knee replacement on DVT prophylaxis and multimodal analgesia',
     patientContextEs: 'Dia 2 postoperatorio de reemplazo total de rodilla con profilaxis anticoagulante',
     rawClinicalNote:
-      'Post-op total knee arthroplasty DVT prophylaxis and analgesia protocol. Administer Apixaban 2.5 mg PO BID q12h for venous thromboembolism anticoagulation prophylaxis. Administer Acetaminophen 650 mg PO q6h PRN pain and Oxycodone 5 mg PO q6h PRN severe pain. OTC NSAIDs (Ibuprofen, Naproxen, Aspirin) are strictly contraindicated alongside Apixaban due to major hemorrhage risk. Monitor closely for melena, hemoptysis, or refractory epistaxis.',
+      'Post-op total knee arthroplasty DVT prophylaxis and analgesia protocol. Administer Apixaban 2.5 mg PO BID q12h for venous thromboembolism anticoagulation prophylaxis. Administer two immediate-release Acetaminophen 325 mg tablets (650 mg total) PO q6h PRN pain and Oxycodone 5 mg PO q6h PRN severe pain. OTC NSAIDs (Ibuprofen, Naproxen, Aspirin) are strictly contraindicated alongside Apixaban due to major hemorrhage risk. Monitor closely for melena, hemoptysis, or refractory epistaxis.',
     curatedPlainEn:
-      'You are recovering from knee joint replacement surgery. Take Apixaban 2.5 mg by mouth twice a day (morning and evening) every 12 hours as blood-thinning treatment to prevent clots. Take Acetaminophen 650 mg by mouth every 6 hours only as needed for mild-to-moderate pain, and Oxycodone 5 mg by mouth every 6 hours only as needed for severe pain. Over-the-counter NSAID pain relievers (Ibuprofen, Naproxen, Aspirin) are unsafe to combine or use with Apixaban because they can cause dangerous stomach or surgical bleeding. Go to the Emergency Department immediately for dark tarry stools caused by stomach bleeding, coughing up blood, or a nosebleed that does not stop easily.',
+      'You are recovering from knee joint replacement surgery. Take Apixaban 2.5 mg by mouth twice a day (morning and evening) every 12 hours as blood-thinning treatment to prevent clots. Take two immediate-release Acetaminophen 325 mg tablets (650 mg total) by mouth at least 6 hours apart only as needed for mild-to-moderate pain. Do not exceed 3,000 mg in 24 hours. Take Oxycodone 5 mg by mouth every 6 hours only as needed for severe pain. Over-the-counter NSAID pain relievers (Ibuprofen, Naproxen, Aspirin) are unsafe to combine or use with Apixaban because they can cause dangerous stomach or surgical bleeding. Go to the Emergency Department immediately for dark tarry stools caused by stomach bleeding, coughing up blood, or a nosebleed that does not stop easily.',
     curatedPlainEs:
-      'Usted se recupera de una cirugia de reemplazo articular de rodilla. Tome Apixaban 2.5 mg por la boca dos veces al dia (manana y tarde) cada 12 horas como tratamiento anticoagulante para prevenir coagulos. Tome Acetaminofen 650 mg por la boca cada 6 horas solo cuando sea necesario por dolor moderado, y Oxicodona 5 mg por la boca cada 6 horas solo cuando sea necesario por dolor intenso. Los calmantes AINE de venta libre (Ibuprofeno, Naproxeno, Aspirina) son peligrosos de combinar o usar con Apixaban por alto riesgo de hemorragia. Acuda a Urgencias de inmediato si presenta heces negras causadas por sangrado estomacal, toser sangre o sangrado de nariz persistente.',
+      'Usted se recupera de una cirugia de reemplazo articular de rodilla. Tome Apixaban 2.5 mg por la boca dos veces al dia (manana y tarde) cada 12 horas como tratamiento anticoagulante para prevenir coagulos. Tome dos tabletas de Acetaminofen de liberacion inmediata de 325 mg (650 mg en total) por la boca con al menos 6 horas entre dosis solo si hay dolor moderado. No exceda 3,000 mg en 24 horas. Tome Oxicodona 5 mg por la boca cada 6 horas solo cuando sea necesario por dolor intenso. Los calmantes AINE de venta libre (Ibuprofeno, Naproxeno, Aspirina) son peligrosos de combinar o usar con Apixaban por alto riesgo de hemorragia. Acuda a Urgencias de inmediato si presenta heces negras causadas por sangrado estomacal, toser sangre o sangrado de nariz persistente.',
     medications: [
       {
         id: 'med-apixaban',
@@ -597,11 +600,11 @@ export const CLINICAL_SCENARIOS = [
       },
       {
         id: 'med-acetaminophen',
-        name: 'Acetaminophen 650 mg Extended-Relief Caplet',
-        rawSig: 'Acetaminophen 650 mg PO q6h PRN pain',
-        plainEn: 'Take 650 mg by mouth every 6 hours as needed for pain (do not exceed 3,000 mg in 24 hours).',
-        plainEs: 'Tomar 650 mg por la boca cada 6 horas si hay dolor (maximo 3,000 mg en 24 horas).',
-        hours: ['06:00', '12:00', '18:00', '22:00'],
+        name: 'Acetaminophen 650 mg Immediate-Release Dose (two 325 mg tablets)',
+        rawSig: 'Acetaminophen immediate-release 325 mg tablets, 2 tablets (650 mg total) PO q6h PRN pain',
+        plainEn: 'Take two immediate-release 325 mg tablets (650 mg total) by mouth only as needed for pain, at least 6 hours apart. Do not exceed 3,000 mg in 24 hours.',
+        plainEs: 'Tomar dos tabletas de liberacion inmediata de 325 mg (650 mg en total) por la boca solo si hay dolor, con al menos 6 horas entre dosis. Maximo 3,000 mg en 24 horas.',
+        hours: ['00:00', '06:00', '12:00', '18:00'],
         route: 'By mouth (PO) q6h PRN',
         purposeEn: 'Baseline non-NSAID pain relief that is safe with blood thinners',
         purposeEs: 'Alivio base del dolor que no afecta la coagulacion'
@@ -830,6 +833,7 @@ export function computeReadabilityMetrics(text) {
 
   const trimmed = text.trim();
   const rawSentences = trimmed
+    .replace(/(\d)\.(?=\d)/g, '$1')
     .split(/[.!?]+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
@@ -867,44 +871,57 @@ export function computeReadabilityMetrics(text) {
   const wordsPerSentence = wordCount / sentenceCount;
   const syllablesPerWord = syllableCount / wordCount;
   const rawGrade =
-    0.39 * wordsPerSentence + 11.8 * syllablesPerWord - 15.59 + jargonCount * 0.42;
-  const boundedGrade = rawGrade <= 3.5 ? 3.5 : rawGrade >= 18.0 ? 18.0 : rawGrade;
+    0.39 * wordsPerSentence + 11.8 * syllablesPerWord - 15.59;
 
   return {
     wordCount,
     sentenceCount,
     syllableCount,
-    syllablesPerWord: Number(syllablesPerWord.toFixed(2)),
-    wordsPerSentence: Number(wordsPerSentence.toFixed(1)),
-    fleschKincaidGrade: Number(boundedGrade.toFixed(1)),
+    syllablesPerWord,
+    wordsPerSentence,
+    fleschKincaidGrade: rawGrade,
     jargonCount
+  };
+}
+
+/** Measure the exact source and output strings. The grade is an English-language estimate. */
+export function analyzeClinicalTransformation(rawText, translatedText, lang = 'en') {
+  const safeLang = lang === 'es' ? 'es' : 'en';
+  const original = typeof rawText === 'string' ? rawText : '';
+  const output = typeof translatedText === 'string' ? translatedText : '';
+  const beforeMetrics = computeReadabilityMetrics(original);
+  const afterMetrics = computeReadabilityMetrics(output);
+  const gradeBefore = beforeMetrics.fleschKincaidGrade;
+  const gradeAfter = afterMetrics.fleschKincaidGrade;
+  // This is a signed change in the formula score, never measured comprehension.
+  // A percentage is only meaningful for a positive starting grade.
+  const clarityGainPct = gradeBefore > 0
+    ? Math.round((gradeBefore - gradeAfter) / gradeBefore * 100)
+    : null;
+  return {
+    originalText: original,
+    translatedText: output,
+    lang: safeLang,
+    matchedTerms: detectJargonMatches(original, safeLang),
+    jargonCountBefore: beforeMetrics.jargonCount,
+    jargonCountAfter: afterMetrics.jargonCount,
+    beforeMetrics,
+    afterMetrics,
+    gradeBefore,
+    gradeAfter,
+    clarityGainPct
   };
 }
 
 export function dejargonizeClinicalText(rawText, lang = 'en') {
   const safeLang = lang === 'es' ? 'es' : 'en';
   if (typeof rawText !== 'string' || rawText.trim().length === 0) {
-    return {
-      originalText: '',
-      translatedText: '',
-      lang: safeLang,
-      matchedTerms: [],
-      jargonCountBefore: 0,
-      jargonCountAfter: 0,
-      beforeMetrics: computeReadabilityMetrics(''),
-      afterMetrics: computeReadabilityMetrics(''),
-      gradeBefore: 0,
-      gradeAfter: 0,
-      clarityGainPct: 0
-    };
+    return analyzeClinicalTransformation('', '', safeLang);
   }
 
-  const matchedTerms = detectJargonMatches(rawText, safeLang);
   let translatedText = rawText;
-
   for (const entry of CLINICAL_LEXICON) {
-    const regex = new RegExp(entry.pattern, 'gi');
-    translatedText = translatedText.replace(regex, entry[safeLang]);
+    translatedText = translatedText.replace(new RegExp(entry.pattern, 'gi'), entry[safeLang]);
   }
 
   if (safeLang === 'es') {
@@ -918,52 +935,54 @@ export function dejargonizeClinicalText(rawText, lang = 'en') {
       .replace(/\b2 puffs\b/gi, '2 inhalaciones');
   }
 
-  const beforeMetrics = computeReadabilityMetrics(rawText);
-  let jargonCountBefore = 0;
-  for (const item of matchedTerms) {
-    jargonCountBefore += item.occurrences;
+  return analyzeClinicalTransformation(rawText, translatedText, safeLang);
+}
+
+function clockMinutes(hour) {
+  const match = typeof hour === 'string' && /^(\d{2}):(\d{2})$/.exec(hour);
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+/** Check listed doses, including the interval to the next day's first dose. */
+export function inspectMedicationIntervals(medications, clockHours = DOSING_CLOCK_HOURS) {
+  const checks = [];
+  const violations = [];
+  const clock = new Set(clockHours);
+  for (const med of medications) {
+    const scheduledHours = Array.isArray(med.hours) ? med.hours : [];
+    const minutes = scheduledHours.map(clockMinutes);
+    const hiddenHours = scheduledHours.filter((hour, i) => minutes[i] === null || !clock.has(hour));
+    if (hiddenHours.length) {
+      violations.push({ medicationId: med.id, code: COLLISION_TYPES.SCHEDULE_CLOCK_COVERAGE, hours: hiddenHours });
+    }
+    const sig = typeof med.rawSig === 'string' && /\bq(\d+(?:\.\d+)?)h\b/i.exec(med.rawSig);
+    if (!sig) continue;
+    const minimumIntervalHours = Number(sig[1]);
+    const ordered = scheduledHours
+      .map((hour, i) => ({ hour, minute: minutes[i] }))
+      .filter((x) => x.minute !== null)
+      .sort((a, b) => a.minute - b.minute);
+    const gapsHours = ordered.map((dose, i) => {
+      const next = ordered[(i + 1) % ordered.length];
+      const gap = (next.minute + (i === ordered.length - 1 ? 1440 : 0) - dose.minute) / 60;
+      if (gap < minimumIntervalHours) {
+        violations.push({
+          medicationId: med.id, code: COLLISION_TYPES.DOSE_INTERVAL,
+          hours: [dose.hour, next.hour], minimumIntervalHours, gapHours: gap
+        });
+      }
+      return gap;
+    });
+    checks.push({
+      medicationId: med.id, minimumIntervalHours, scheduledHours: [...scheduledHours], gapsHours,
+      valid: hiddenHours.length === 0 && ordered.length > 0 && gapsHours.every((gap) => gap >= minimumIntervalHours)
+    });
+    if (!ordered.length) {
+      violations.push({ medicationId: med.id, code: COLLISION_TYPES.SCHEDULE_CLOCK_COVERAGE, hours: [] });
+    }
   }
-
-  // Plain patient-facing translation eliminates clinical abbreviations and simplifies syntax to Grade 5-6
-  const rawAfterMetrics = computeReadabilityMetrics(translatedText);
-  const plainSyllableDensity =
-    rawAfterMetrics.syllablesPerWord >= 1.48 ? 1.38 : rawAfterMetrics.syllablesPerWord;
-  const plainGradeBase = 5.4 + (plainSyllableDensity - 1.25) * 2.2;
-  const gradeAfter = Number(
-    (plainGradeBase <= 4.8 ? 4.8 : plainGradeBase >= 6.4 ? 6.4 : plainGradeBase).toFixed(1)
-  );
-  const gradeBefore =
-    beforeMetrics.fleschKincaidGrade <= gradeAfter + 1.2
-      ? Number((gradeAfter + 3.8).toFixed(1))
-      : beforeMetrics.fleschKincaidGrade;
-
-  const gradeDropRatio = (gradeBefore - gradeAfter) / gradeBefore;
-  const jargonBonus = jargonCountBefore >= 1 ? Math.min(0.18, jargonCountBefore * 0.02) : 0;
-  const clarityGainPct = Math.round(
-    Math.min(92, Math.max(18, (gradeDropRatio + jargonBonus) * 100))
-  );
-
-  return {
-    originalText: rawText,
-    translatedText,
-    lang: safeLang,
-    matchedTerms,
-    jargonCountBefore,
-    jargonCountAfter: 0,
-    beforeMetrics: {
-      ...beforeMetrics,
-      fleschKincaidGrade: gradeBefore
-    },
-    afterMetrics: {
-      ...rawAfterMetrics,
-      syllablesPerWord: Number(plainSyllableDensity.toFixed(2)),
-      fleschKincaidGrade: gradeAfter,
-      jargonCount: 0
-    },
-    gradeBefore,
-    gradeAfter,
-    clarityGainPct
-  };
+  return { checks, violations };
 }
 
 export function buildMedicationScheduleAndCollisions(
@@ -1008,7 +1027,25 @@ export function buildMedicationScheduleAndCollisions(
     };
   });
 
-  const collisions = [];
+  const intervalInspection = inspectMedicationIntervals(scenario.medications);
+  const collisions = intervalInspection.violations.map((issue) => ({
+    code: issue.code,
+    severityScore: 95,
+    severityBand: 'CRITICAL',
+    collisionHours: issue.hours,
+    involvedAgents: [scenario.medications.find((med) => med.id === issue.medicationId).name],
+    title: isEs ? 'Horario de dosis inseguro' : 'Unsafe dose schedule',
+    explanation: issue.code === COLLISION_TYPES.DOSE_INTERVAL
+      ? (isEs
+        ? 'El horario tiene dosis con menos horas de separacion de las que indica la receta.'
+        : 'The listed doses are closer together than the prescription minimum interval, including overnight.')
+      : (isEs
+        ? 'Una hora de dosis falta en el reloj o no es valida.'
+        : 'A listed dose time is invalid or missing from the displayed clock.'),
+    actionDirective: isEs
+      ? 'No siga este horario. Pida al medico o farmaceutico que confirme las horas antes de tomar la siguiente dosis.'
+      : 'Do not follow this schedule. Ask the prescriber or pharmacist to confirm the times before the next dose.'
+  }));
 
   // 1. Apixaban + Ibuprofen / NSAID -> CRITICALCONTRAINDICATION
   if (scenario.id === 'postop-anticoag-ortho' && otcSet.has('otc-ibuprofen')) {
@@ -1206,6 +1243,7 @@ export function buildMedicationScheduleAndCollisions(
     slots,
     collisions,
     collisionCount: collisions.length,
+    intervalChecks: intervalInspection.checks,
     maxSeverityScore,
     overallSafetyBand
   };
@@ -1376,12 +1414,14 @@ export function buildUiViewState(state) {
     ? current.customText.trim()
     : scenario.rawClinicalNote;
 
-  const nlpAnalysis = dejargonizeClinicalText(sourceNote, safeLang);
-  const plainPatientParagraph = usingCustomText
-    ? nlpAnalysis.translatedText
-    : safeLang === 'es'
-    ? scenario.curatedPlainEs
-    : scenario.curatedPlainEn;
+  const nlpAnalysis = usingCustomText
+    ? dejargonizeClinicalText(sourceNote, safeLang)
+    : analyzeClinicalTransformation(
+      sourceNote,
+      safeLang === 'es' ? scenario.curatedPlainEs : scenario.curatedPlainEn,
+      safeLang
+    );
+  const plainPatientParagraph = nlpAnalysis.translatedText;
 
   const scheduleReport = buildMedicationScheduleAndCollisions(
     scenario.id,
