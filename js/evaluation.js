@@ -24,6 +24,7 @@ import {
   DOSING_CLOCK_HOURS,
   buildUiViewState,
   detectJargonMatches,
+  locateJargonSpans,
   dejargonizeClinicalText,
   buildMedicationScheduleAndCollisions,
   evaluateSymptomTriage
@@ -576,6 +577,191 @@ export function evaluateFailureModes() {
   });
 }
 
+/**
+ * HELD-OUT TERM SET (added 2026-11-18).
+ *
+ * Twelve new synthetic discharge sigs written after engine v1.1.0 and its 38-term
+ * lexicon were frozen. Labels were written first, from the rule below, and the engine
+ * was not edited after the first run, so the score is reported exactly as it landed.
+ * The author wrote both the notes and the labels, so this is a held-out split of a
+ * single-author corpus, not an independent clinical annotation.
+ *
+ * Scoring compares sets of normalized surface forms per note (lowercase, collapsed
+ * whitespace, leading and trailing punctuation removed), so out-of-lexicon terms count
+ * as misses for the engine instead of being dropped.
+ */
+export const HELD_OUT_DATE = '2026-11-18';
+export const HELD_OUT_LABEL_RULE =
+  'Label every abbreviation, Latin dosing shorthand, lab or vital-sign marker, and medical term that is not everyday conversational English. Drug names, units and numbers are not labeled.';
+
+export const HELD_OUT_TERM_CASES = [
+  {
+    id: 'ho-copd',
+    label: 'COPD flare with rescue inhaler and steroid burst',
+    text: 'Discharged after COPD exacerbation. Use albuterol MDI 2 puffs q4h PRN SOB. Prednisone 40 mg PO daily x5d. Return to ED for hemoptysis or SpO2 below 90%.',
+    expected: ['copd', 'exacerbation', 'mdi', 'q4h', 'prn', 'sob', 'po', 'x5d', 'ed', 'hemoptysis', 'spo2']
+  },
+  {
+    id: 'ho-diuretic',
+    label: 'Loop diuretic with potassium check',
+    text: 'Furosemide 20 mg po qam for edema. Hold if SBP < 100. Check BMP in 1 week for hypokalemia. Daily weights; call for weight gain over 2 kg.',
+    expected: ['po', 'qam', 'edema', 'sbp', 'bmp', 'hypokalemia']
+  },
+  {
+    id: 'ho-lmwh',
+    label: 'Injected blood thinner after joint replacement',
+    text: 'Enoxaparin 40 mg subcut q24h x14d after arthroplasty. Report melena, hematuria or epistaxis. Avoid NSAIDs.',
+    expected: ['subcut', 'q24h', 'x14d', 'arthroplasty', 'melena', 'hematuria', 'epistaxis', 'nsaids']
+  },
+  {
+    id: 'ho-insulin',
+    label: 'Bedtime insulin with glucose checks',
+    text: 'Insulin glargine 18 units QHS. Check fingerstick glucose AC and HS. Treat hypoglycemia with 15 g fast carbs. HbA1c 8.4%.',
+    expected: ['qhs', 'fingerstick', 'ac', 'hs', 'hypoglycemia', 'hba1c']
+  },
+  {
+    id: 'ho-ace',
+    label: 'Blood pressure titration with kidney labs',
+    text: 'Lisinopril 10 mg PO QD; titrate to BP goal under 130/80. Watch for orthostatic hypotension and hyperkalemia. eGFR 48.',
+    expected: ['po', 'qd', 'titrate', 'bp', 'orthostatic hypotension', 'hyperkalemia', 'egfr']
+  },
+  {
+    id: 'ho-antibiotic',
+    label: 'Antibiotic course with dissolving anti-nausea tablet',
+    text: 'Amoxicillin 875 mg PO BID x10 days with food. Ondansetron 4 mg ODT q8h PRN nausea.',
+    expected: ['po', 'bid', 'x10', 'odt', 'q8h', 'prn']
+  },
+  {
+    id: 'ho-dotted',
+    label: 'Dotted Latin shorthand and a heart-rate hold',
+    text: 'Metoprolol tartrate 25 mg p.o. b.i.d. Hold for HR < 55. Follow up with cardiology for syncope work-up.',
+    expected: ['p.o', 'b.i.d', 'hr', 'syncope']
+  },
+  {
+    id: 'ho-endoscopy',
+    label: 'Fasting before an endoscopy',
+    text: 'Patient NPO after midnight before EGD. Resume diet postprocedure. Pantoprazole 40 mg PO QAM AC.',
+    expected: ['npo', 'egd', 'po', 'qam', 'ac']
+  },
+  {
+    id: 'ho-warfarin',
+    label: 'Warfarin with an aspirin warning',
+    text: 'Clopidogrel 75 mg PO daily. Anticoagulation with warfarin; INR goal 2 to 3. Aspirin contraindicated due to GI bleed history.',
+    expected: ['po', 'anticoagulation', 'inr', 'contraindicated', 'gi']
+  },
+  {
+    id: 'ho-plain',
+    label: 'Plain-language control',
+    text: 'Take one pill by mouth twice a day with food. Walk a little each day. Call your doctor if the pain gets worse.',
+    expected: []
+  },
+  {
+    id: 'ho-iron',
+    label: 'Iron tablets spaced from thyroid medicine',
+    text: 'Iron sulfate 325 mg PO TID PC; separate from levothyroxine by 4 hours to avoid chelation and malabsorption.',
+    expected: ['po', 'tid', 'pc', 'chelation', 'malabsorption']
+  },
+  {
+    id: 'ho-nebs',
+    label: 'Nebulizer treatments with breathing warning signs',
+    text: 'Albuterol nebs q6h while awake. Monitor RR and work of breathing; return for retractions, cyanosis or dyspnea at rest.',
+    expected: ['nebs', 'q6h', 'rr', 'retractions', 'cyanosis', 'dyspnea']
+  }
+];
+
+/** Lowercase, collapse whitespace, strip leading and trailing punctuation. */
+export function normalizeSurface(raw) {
+  return String(raw || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s.,;:()[\]]+|[\s.,;:()[\]]+$/g, '');
+}
+
+/** Engine prediction: the surface form of every lexicon span found in the note. */
+export function engineSurfaceTerms(text) {
+  return [...new Set(locateJargonSpans(text).map((s) => normalizeSurface(s.text)))];
+}
+
+/**
+ * Capitals heuristic baseline: flag any token with two or more capital letters
+ * (PO, SpO2, eGFR) or an every-N-hours shape (q4h). It needs no lexicon and cannot
+ * explain anything, which makes it a fair "how far does pattern spotting get" floor.
+ */
+export function capsHeuristicTerms(text) {
+  const out = new Set();
+  for (const raw of String(text || '').split(/\s+/)) {
+    const tok = normalizeSurface(raw.replace(/[;,:]+$/g, ''));
+    const orig = raw.replace(/^[.,;:()]+|[.,;:()]+$/g, '');
+    if (!tok) continue;
+    const capitals = (orig.match(/[A-Z]/g) || []).length;
+    if (capitals >= 2 || /^q\d{1,2}h$/i.test(orig)) out.add(tok);
+  }
+  return [...out];
+}
+
+function scoreSurfaceSets(cases, predictFn) {
+  let tp = 0;
+  let fp = 0;
+  let fn = 0;
+  const perCase = cases.map((c) => {
+    const expected = new Set(c.expected.map(normalizeSurface));
+    const predicted = new Set(predictFn(c.text));
+    const hits = [...predicted].filter((t) => expected.has(t));
+    const falsePos = [...predicted].filter((t) => !expected.has(t));
+    const misses = [...expected].filter((t) => !predicted.has(t));
+    tp += hits.length;
+    fp += falsePos.length;
+    fn += misses.length;
+    return { id: c.id, label: c.label, hits, falsePos, misses };
+  });
+  const precision = safeDivide(tp, tp + fp);
+  const recall = safeDivide(tp, tp + fn);
+  const f1 = safeDivide(2 * precision * recall, precision + recall);
+  return {
+    tp,
+    fp,
+    fn,
+    precision: Number(precision.toFixed(4)),
+    recall: Number(recall.toFixed(4)),
+    f1: Number(f1.toFixed(4)),
+    perCase
+  };
+}
+
+/** Held-out score for the engine and two baselines. Pure and deterministic. */
+export function evaluateHeldOut(cases = HELD_OUT_TERM_CASES) {
+  const engine = scoreSurfaceSets(cases, engineSurfaceTerms);
+  const lexiconWords = new Set();
+  for (const entry of CLINICAL_LEXICON) {
+    for (const w of entry.term.toLowerCase().split(/\s+/)) lexiconWords.add(w);
+  }
+  let formVariant = 0;
+  let outOfLexicon = 0;
+  for (const c of engine.perCase) {
+    for (const miss of c.misses) {
+      const bare = miss.replace(/\./g, '');
+      const parts = bare.split(' ');
+      if (parts.every((w) => lexiconWords.has(w))) formVariant += 1;
+      else outOfLexicon += 1;
+    }
+  }
+  engine.missBreakdown = { formVariant, outOfLexicon };
+  const caps = scoreSurfaceSets(cases, capsHeuristicTerms);
+  const echo = scoreSurfaceSets(cases, () => []);
+  const labelCount = cases.reduce((n, c) => n + new Set(c.expected.map(normalizeSurface)).size, 0);
+  return {
+    date: HELD_OUT_DATE,
+    rule: HELD_OUT_LABEL_RULE,
+    notes: cases.length,
+    labels: labelCount,
+    engine,
+    capsBaseline: caps,
+    echoBaseline: echo,
+    f1GainOverCaps: Number((engine.f1 - caps.f1).toFixed(4)),
+    f1GainOverEcho: Number((engine.f1 - echo.f1).toFixed(4))
+  };
+}
+
 /** Full benchmark report. Pure: the same input always yields the same numbers. */
 export function runEvaluation({ nowFn, repeats = 40 } = {}) {
   const term = evaluateTermDetection();
@@ -584,6 +770,7 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
   const readability = evaluateReadability();
   const latency = measureLatency(nowFn, repeats);
   const failureModes = evaluateFailureModes();
+  const heldOut = evaluateHeldOut();
   const combinedBrier = Number(
     ((term.brier + triage.brier) / 2).toFixed(4)
   );
@@ -626,6 +813,7 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       cost: 'Zero network requests, zero API spend, zero server cost. All computation runs client-side.'
     },
     tasks: { term, collision, triage, readability, latency },
+    heldOut,
     failureModes,
     disclaimers: DISCLAIMERS
   };
@@ -644,6 +832,7 @@ export function formatCliReport(report) {
     `Readability: mean grade after ${m.meanGradeAfter}, mean drop ${m.meanGradeDrop}`,
     `Latency: ${m.meanMsPerOperation} ms/operation, ${m.meanMsPerFullSuite} ms/full suite`,
     '',
+    `Held-out (${report.heldOut.notes} notes, ${report.heldOut.labels} labels, written ${report.heldOut.date}): engine P ${report.heldOut.engine.precision} R ${report.heldOut.engine.recall} F1 ${report.heldOut.engine.f1}; capitals baseline F1 ${report.heldOut.capsBaseline.f1}; echo baseline F1 ${report.heldOut.echoBaseline.f1}`,
     `Baseline (${report.baseline.id}): term F1 ${report.baseline.termDetectionF1}, collision F1 ${report.baseline.collisionF1}, triage accuracy ${report.baseline.triageAccuracy}, triage F1 ${report.baseline.triageF1}`,
     `Gains: term F1 +${report.comparison.termDetectionF1Gain}, collision F1 +${report.comparison.collisionF1Gain}, triage accuracy +${report.comparison.triageAccuracyGain}, triage F1 +${report.comparison.triageF1Gain}`,
     '',

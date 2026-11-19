@@ -528,3 +528,46 @@ test('Eval DOM 19: dosing timeline renders every clock slot without clipping the
   const finalX = 48 + 7 * 122;
   assert.ok(width > finalX + 52);
 });
+
+test('Provenance DOM 01: source note marks every lexicon span and escapes pasted markup', () => {
+  const { doc, context: ctx } = bootApp();
+  const preset = doc.getElementById('raw-clinical-note-display').innerHTML;
+  const view = vm.runInContext('buildUiViewState(createInitialAppState())', ctx);
+  assert.equal((preset.match(/<mark class="prov-mark"/g) || []).length, view.sourceSpans.length);
+  assert.ok(view.sourceSpans.length > 0);
+  const input = doc.getElementById('custom-discharge-textarea');
+  const hostile = 'Give <img src=x onerror=alert(1)> "PO" \'BID\' & q12h <script>x</script>';
+  input.textContent = hostile;
+  input.fire('input', { target: { value: hostile } });
+  const html = doc.getElementById('raw-clinical-note-display').innerHTML;
+  assert.equal(/<img|<script/i.test(html), false, 'pasted markup must be escaped');
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(html, /&quot;/);
+  assert.match(html, /&#39;/);
+  assert.match(html, /&amp;/);
+  assert.equal((html.match(/<mark class="prov-mark"/g) || []).length, 3);
+  assert.match(doc.getElementById('provenance-summary').textContent, /^3 spans, 3 terms$/);
+});
+
+test('Provenance DOM 02: every glossary row links to its numbered source spans', () => {
+  const { doc } = bootApp();
+  doc.fire('click', doc.querySelectorAll('[data-scenario-tab]')[2]);
+  const note = doc.getElementById('raw-clinical-note-display').innerHTML;
+  const rows = doc.getElementById('jargon-glossary-tbody').innerHTML;
+  const noteIds = [...note.matchAll(/data-term-id="([^"]+)" data-span-index="(\d+)"/g)];
+  const rowIds = new Set([...rows.matchAll(/<tr class="lexicon-row" data-term-id="([^"]+)"/g)].map((m) => m[1]));
+  assert.equal(noteIds.length, 15);
+  for (const [, id] of noteIds) assert.ok(rowIds.has(id), `no glossary row for ${id}`);
+  assert.equal((rows.match(/class="span-chip/g) || []).length, noteIds.length);
+});
+
+test('Evaluation board 01: held-out scoreboard, table and harm panel render on load', () => {
+  const { doc } = bootApp();
+  assert.match(doc.getElementById('eval-glance').innerHTML, /0\.7339/);
+  assert.match(doc.getElementById('heldout-chart').innerHTML, /0\.7222/);
+  assert.match(doc.getElementById('devset-chart').innerHTML, /0\.9459/);
+  assert.equal((doc.getElementById('heldout-tbody').innerHTML.match(/<tr/g) || []).length, 12);
+  assert.match(doc.getElementById('heldout-caption').textContent, /40 of 69/);
+  assert.match(doc.getElementById('impact-heldout-recall').textContent, /0\.5797/);
+  assert.equal(doc.getElementById('evaluation-drawer').hidden, true);
+});

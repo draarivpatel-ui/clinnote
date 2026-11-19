@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self';" />
   <title>ClinNote | Clinical Discharge De-Jargonizer &amp; Medication Safety Workbench</title>
   <meta name="description" content="Client-side clinical NLP discharge de-jargonizer, bilingual EN/ES readability analyzer, 24-hour medication collision matrix, and red-flag symptom triage workbench." />
   <meta property="og:title" content="ClinNote | Clinical Discharge De-Jargonizer &amp; Medication Safety Workbench" />
@@ -16,9 +16,6 @@
   <meta name="twitter:title" content="ClinNote | Clinical Discharge De-Jargonizer &amp; Medication Safety Workbench" />
   <meta name="twitter:description" content="Client-side clinical NLP discharge de-jargonizer, bilingual EN/ES readability analyzer, 24-hour medication collision matrix, and red-flag symptom triage workbench." />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='5' fill='%23111820' stroke='%230D7A5F' stroke-width='2'/%3E%3Cpath d='M16 8v16M8 16h16' stroke='%230D7A5F' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23F7F5F0'/%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -31,36 +28,32 @@
 
   <header class="site-header no-print">
     <div class="header-inner">
-      <div class="brand-lockup">
-        <svg class="brand-mark-svg" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
-          <rect x="2" y="2" width="28" height="28" rx="5" fill="#111820" stroke="#0D7A5F" stroke-width="1.75" />
-          <path d="M16 8v16M8 16h16" stroke="#0D7A5F" stroke-width="2.5" stroke-linecap="round" />
-          <circle cx="16" cy="16" r="3" fill="#F7F5F0" />
+      <a class="brand-lockup" href="#main-workbench" aria-label="ClinNote home">
+        <svg class="brand-mark-svg" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="29" height="29" rx="7" fill="#0F2A2E" />
+          <path d="M16 8.5v15M8.5 16h15" stroke="#7FD6C2" stroke-width="2.6" stroke-linecap="round" />
+          <circle cx="16" cy="16" r="2.6" fill="#F4F7F6" />
         </svg>
-        <div class="brand-titles">
-          <span class="brand-name">ClinNote</span>
-          <span class="brand-tagline">Zero-Cloud Clinical Discharge Translator &amp; Safety Dossier</span>
-        </div>
-      </div>
+        <span class="brand-name">ClinNote</span>
+      </a>
 
-      <nav class="header-controls" aria-label="Language and print controls">
-        <div class="privacy-pill" title="100% Client-Side Execution: Zero PHI leaves your browser">
-          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+      <nav class="header-controls" aria-label="Language, evaluation and print controls">
+        <span class="privacy-pill" title="Everything runs in this browser tab. Nothing is uploaded.">
+          <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
             <path d="M10 2L4 4.5v5.2c0 4.1 2.6 7.6 6 8.3 3.4-.7 6-4.2 6-8.3V4.5L10 2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
             <path d="M7.5 10.2l1.8 1.8 3.4-3.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <span>100% Local Browser NLP (Zero PHI Cloud Upload)</span>
-        </div>
+          <span>Offline, nothing uploaded</span>
+        </span>
 
         <div class="lang-switcher" role="group" aria-label="Select patient instruction language">
-          <button type="button" class="lang-btn is-active" data-lang-btn="en" aria-pressed="true">English (EN)</button>
-          <button type="button" class="lang-btn" data-lang-btn="es" aria-pressed="false">Espanol (ES)</button>
+          <button type="button" class="lang-btn is-active" data-lang-btn="en" aria-pressed="true">EN</button>
+          <button type="button" class="lang-btn" data-lang-btn="es" aria-pressed="false">ES</button>
         </div>
 
         <button type="button" id="open-evaluation-btn" class="action-btn-secondary" aria-expanded="false" aria-controls="evaluation-drawer">
           <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
-            <path d="M3 16h14M4 13l3-4 3 2 3-6 3 3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="7" cy="9" r="1.2" fill="currentColor" /><circle cx="10" cy="11" r="1.2" fill="currentColor" /><circle cx="13" cy="5" r="1.2" fill="currentColor" /><circle cx="16" cy="8" r="1.2" fill="currentColor" />
+            <path d="M3 16h14M5 13V9M9 13V5M13 13V8M17 13V11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
           </svg>
           <span>Evaluation</span>
         </button>
@@ -76,58 +69,50 @@
   </header>
 
   <main id="main-workbench" class="workbench-shell no-print">
-    <!-- Hero Editorial Split -->
     <section class="hero-dossier" aria-labelledby="hero-main-heading">
       <div class="hero-copy-column">
-        <h1 id="hero-main-heading" class="hero-heading">Hospital discharge instructions explained with a medication safety workbench.</h1>
+        <h1 id="hero-main-heading" class="hero-heading">Discharge notes, explained term by term.</h1>
         <p class="hero-lead">
-          Hospital discharge summaries average a Grade 11 to 14 reading level packed with Latin dosing shorthand (<code>PO BID q12h PRN</code>), complex lab markers (<code>eGFR</code>, <code>HbA1c</code>, <code>SpO2</code>), and unflagged over-the-counter medication hazards. ClinNote converts raw clinical notes into plain English and Spanish instructions, builds a 24-hour dosing clock, screens for OTC pharmacokinetic collisions, and prints a one-page refrigerator safety schedule.
+          ClinNote rewrites dense hospital discharge shorthand (<code>PO BID q12h PRN</code>, <code>eGFR</code>, <code>SpO2</code>) into plain English or Spanish, links every explained term back to the exact characters in the original note, lays the doses out on a 24-hour clock, and checks common over-the-counter add-ons for collisions. Its four preset notes score between Grade 11.5 and 16.2 on the Flesch-Kincaid formula.
         </p>
 
         <div class="hero-telemetry-bar" role="region" aria-label="Readability telemetry metrics">
           <div class="telemetry-cell">
+            <span class="telemetry-caption">Source grade</span>
             <strong id="metric-grade-before" class="telemetry-val tabular-nums">Pending</strong>
-            <span class="telemetry-caption">Source Grade Estimate</span>
           </div>
           <div class="telemetry-cell telemetry-highlight">
+            <span class="telemetry-caption">Output grade</span>
             <strong id="metric-grade-after" class="telemetry-val tabular-nums">Pending</strong>
-            <span class="telemetry-caption">Output Formula Score</span>
           </div>
           <div class="telemetry-cell">
+            <span class="telemetry-caption">Score change</span>
             <strong id="metric-clarity-gain" class="telemetry-val tabular-nums">Pending</strong>
-            <span class="telemetry-caption">Readability Score Change</span>
           </div>
           <div class="telemetry-cell">
+            <span class="telemetry-caption">Lexicon terms</span>
             <strong id="metric-jargon-count" class="telemetry-val tabular-nums">Pending</strong>
-            <span class="telemetry-caption">Detected Lexicon Occurrences</span>
           </div>
           <div class="telemetry-cell">
+            <span class="telemetry-caption">Syllables per word</span>
             <strong id="metric-syllable-density" class="telemetry-val tabular-nums">Pending</strong>
-            <span class="telemetry-caption">Syllable-per-Word Density</span>
           </div>
         </div>
-        <p class="metric-method-note">Scores use the English Flesch-Kincaid formula with estimated syllables, including on Spanish text. Spanish scores are not validated reading grades. Counts include explained terms kept in parentheses.</p>
+        <p class="metric-method-note">Grades use the English Flesch-Kincaid formula with estimated syllables, including on Spanish text, where they are not validated reading grades. Counts include explained terms kept in parentheses.</p>
       </div>
 
-      <figure class="hero-figure-card">
-        <img
-          src="img/clinnote-hero.jpg"
-          alt="Swiss medical editorial diagram showing clinical discharge shorthand transformed into a structured 24-hour patient care schedule"
-          class="hero-illustration-img"
-          width="680"
-          height="460"
-        />
-        <figcaption class="hero-figcaption">
-          <span>Deterministic Client-Side Clinical Lexicon (38 Medical Terms) + 24-Hour Pharmacokinetic Collision Matrix</span>
-          <span class="mono-code">PHI-ZERO-LOCAL-V1</span>
-        </figcaption>
-      </figure>
+      <aside class="glance-card" aria-labelledby="glance-heading">
+        <div class="glance-head">
+          <h2 id="glance-heading" class="glance-title">Held-out benchmark</h2>
+          <a class="glance-link" href="#evaluation-heading">Full evaluation</a>
+        </div>
+        <div id="eval-glance" class="glance-body" aria-live="polite"></div>
+      </aside>
     </section>
 
-    <!-- Preset Clinical Scenarios Navigation -->
     <section class="scenario-selector-section" aria-labelledby="scenario-selector-heading">
       <div class="section-header-row">
-        <h2 id="scenario-selector-heading" class="section-heading">Clinical Discharge &amp; Lab Telemetry Scenarios</h2>
+        <h2 id="scenario-selector-heading" class="section-heading">Preset discharge notes</h2>
         <div class="scenario-meta-strip">
           <span id="active-scenario-code" class="mono-badge tabular-nums">ER-PULM-01</span>
           <span id="active-scenario-dept" class="dept-tag">Pediatric Emergency Department Discharge</span>
@@ -181,52 +166,51 @@
       </div>
     </section>
 
-    <!-- Bilingual Clinical De-Jargonizer Split Workbench -->
     <section class="dejargonizer-workbench" aria-labelledby="active-scenario-title">
       <div class="dossier-banner">
-        <div class="dossier-title-block">
-          <h2 id="active-scenario-title" class="dossier-heading">Post-ER Acute Bronchospasm &amp; Oral Corticosteroid Taper</h2>
-          <p id="active-patient-context" class="dossier-sub">8-year-old discharged after acute asthma exacerbation stabilization</p>
-        </div>
+        <h2 id="active-scenario-title" class="dossier-heading">Post-ER Acute Bronchospasm &amp; Oral Corticosteroid Taper</h2>
+        <p id="active-patient-context" class="dossier-context">8-year-old discharged after acute asthma exacerbation stabilization</p>
       </div>
 
-      <div class="translation-split-grid">
-        <!-- Left Column: Raw Clinical Discharge Note + Custom Input -->
+      <div id="provenance-workbench" class="translation-split-grid">
         <div class="clinical-source-panel">
-          <h3 class="panel-heading">Hospital EHR Discharge Summary (Source Text)</h3>
+          <div class="panel-title-row">
+            <h3 class="panel-heading">Source note</h3>
+            <span id="provenance-summary" class="provenance-summary tabular-nums">0 spans</span>
+          </div>
           <div id="raw-clinical-note-display" class="clinical-note-box mono-text"></div>
+          <p class="provenance-hint">Each highlighted span is an exact character range in the note. Hover or focus a span or a glossary row to link the two.</p>
 
           <div class="custom-paste-drawer">
-            <label for="custom-discharge-textarea" class="custom-textarea-label">
-              Paste Custom Discharge Summary or Prescription Sig (De-Jargonizes Live in Browser):
-            </label>
+            <label for="custom-discharge-textarea" class="custom-textarea-label">Paste your own discharge note (stays in this tab)</label>
             <textarea
               id="custom-discharge-textarea"
               class="custom-textarea"
               rows="3"
-              placeholder="Example: Administer Apixaban 2.5 mg PO BID q12h. NSAIDs contraindicated due to melena and nephrotoxicity. Monitor SpO2 and eGFR..."
+              placeholder="Example: Administer Apixaban 2.5 mg PO BID q12h. NSAIDs contraindicated due to melena and nephrotoxicity."
             ></textarea>
             <div class="custom-drawer-actions">
-              <button type="button" id="load-sample-jargon-btn" class="btn-secondary">Load Dense Clinical Sample</button>
-              <button type="button" id="reset-custom-text-btn" class="btn-secondary">Restore Scenario Preset</button>
+              <button type="button" id="load-sample-jargon-btn" class="btn-secondary">Load dense sample</button>
+              <button type="button" id="reset-custom-text-btn" class="btn-secondary">Restore preset</button>
             </div>
           </div>
         </div>
 
-        <!-- Right Column: Explained Patient Guide (EN / ES) -->
         <div class="patient-plain-panel">
-          <h3 class="panel-heading">Plain-Language Patient Care Guide</h3>
+          <div class="panel-title-row">
+            <h3 class="panel-heading">Plain-language guide</h3>
+          </div>
           <div id="plain-patient-note-display" class="plain-output-box" aria-live="polite"></div>
 
           <div class="lexicon-table-wrap">
-            <h4 class="subtable-heading">Detected Clinical Jargon &amp; Plain-Language Replacements</h4>
+            <h4 class="subtable-heading">Explained terms and where they came from</h4>
             <div class="table-scroll-container">
-              <table class="lexicon-table">
+              <table class="lexicon-table provenance-table">
                 <thead>
                   <tr>
-                    <th scope="col">Clinical Term</th>
-                    <th scope="col">Class</th>
-                    <th scope="col">Plain Patient Translation</th>
+                    <th scope="col">Term in note</th>
+                    <th scope="col">Plain meaning</th>
+                    <th scope="col">Source span</th>
                   </tr>
                 </thead>
                 <tbody id="jargon-glossary-tbody"></tbody>
@@ -236,9 +220,8 @@
         </div>
       </div>
 
-      <!-- Lab & Vital Sign Telemetry Reference Row -->
       <div class="labs-section-block">
-        <h3 class="panel-heading">Discharge Lab &amp; Vital Sign Telemetry Reference</h3>
+        <h3 class="panel-heading">Labs and vital signs</h3>
         <div id="labs-telemetry-grid" class="labs-telemetry-grid"></div>
       </div>
     </section>
@@ -246,19 +229,16 @@
     <!-- 24-Hour Medication Schedule & OTC Pharmacokinetic Collision Matrix -->
     <section class="schedule-collision-section" aria-labelledby="schedule-matrix-heading">
       <div class="section-header-row">
-        <div>
-          <h2 id="schedule-matrix-heading" class="section-heading">24-Hour Medication Clock &amp; OTC Pharmacokinetic Collision Simulator</h2>
-          <p class="section-sub">Toggle common over-the-counter cabinets items below to test for bleeding contraindications, renal triple-whammy injury, mineral chelation malabsorption, and CNS sedation stacking.</p>
-        </div>
+        <h2 id="schedule-matrix-heading" class="section-heading">24-hour dose clock and add-on check</h2>
         <div class="safety-status-box">
-          <span class="safety-status-label">Regimen Safety Status:</span>
+          <span class="safety-status-label">Regimen status</span>
           <strong id="safety-band-badge" class="safety-band-pill tabular-nums" data-band="safe">SAFE (0/100)</strong>
         </div>
       </div>
 
       <!-- OTC Add-On Toggles -->
       <div class="otc-simulator-panel" role="group" aria-label="Over-the-counter medication interaction toggles">
-        <h3 class="panel-heading">Simulate Adding Over-the-Counter (OTC) Cabinet Items</h3>
+        <h3 class="panel-heading">Add a common over-the-counter item</h3>
         <div id="otc-toggles-container" class="otc-toggles-grid"></div>
       </div>
 
@@ -267,13 +247,13 @@
 
       <!-- 24-Hour Interactive SVG Timeline -->
       <div class="svg-timeline-card">
-        <h3 class="panel-heading">24-Hour Dosing &amp; Absorption Separation Clock (00:00 to 22:00)</h3>
+        <h3 class="panel-heading">Dose clock, 00:00 to 22:00</h3>
         <div id="medication-svg-stage" class="svg-stage-wrap"></div>
       </div>
 
       <!-- Hour-by-Hour Dosing Ledger -->
       <div class="hourly-ledger-card">
-        <h3 class="panel-heading">Hour-by-Hour Administration Ledger</h3>
+        <h3 class="panel-heading">Hour by hour</h3>
         <div id="schedule-slots-list" class="schedule-slots-grid"></div>
       </div>
     </section>
@@ -281,15 +261,12 @@
     <!-- Red-Flag Triage Symptom Checker -->
     <section class="triage-checker-section" aria-labelledby="triage-heading">
       <div class="section-header-row">
-        <div>
-          <h2 id="triage-heading" class="section-heading">Red-Flag Symptom Triage: Clinic Call vs. Emergency Department</h2>
-          <p class="section-sub">Select any post-discharge symptoms observed at home to compute deterministic clinical disposition guidance.</p>
-        </div>
+        <h2 id="triage-heading" class="section-heading">Red-flag symptoms at home</h2>
       </div>
 
       <div class="triage-split-layout">
         <div class="symptom-selector-column">
-          <h3 class="panel-heading">Observed Post-Discharge Symptoms (Toggle All That Apply)</h3>
+          <h3 class="panel-heading">Select everything you notice</h3>
           <div id="symptom-triage-options" class="symptom-options-list"></div>
         </div>
 
@@ -302,7 +279,7 @@
           </div>
           <p id="triage-rationale-text" class="triage-rationale"></p>
           <div class="triage-action-box">
-            <strong>Next Action Step:</strong>
+            <strong>Next step</strong>
             <p id="triage-action-steps"></p>
             <p id="triage-uncertainty-advice">If in doubt, call emergency services (911).</p>
           </div>
@@ -310,18 +287,35 @@
       </div>
     </section>
 
-    <!-- Deterministic Evaluation & Failure-Mode Benchmark Drawer -->
-    <section class="evaluation-section" aria-labelledby="evaluation-heading">
+    <section id="evaluation" class="evaluation-section" aria-labelledby="evaluation-heading">
       <div class="section-header-row">
-        <div>
-          <h2 id="evaluation-heading" class="section-heading">Evaluation &amp; Failure-Mode Benchmark</h2>
-          <p class="section-sub">
-            A deterministic benchmark recomputed live in your browser from a frozen, hand-labeled synthetic corpus.
-            Numbers below come from the same engine functions the workbench uses, not from stored screenshots.
-          </p>
-        </div>
+        <h2 id="evaluation-heading" class="section-heading">Evaluation</h2>
         <button type="button" id="run-evaluation-btn" class="action-btn-primary">Run benchmark again</button>
       </div>
+
+      <div class="eval-board">
+        <article class="eval-board-card eval-board-main" aria-labelledby="heldout-heading">
+          <h3 id="heldout-heading" class="panel-heading">Held-out term detection</h3>
+          <div id="heldout-chart" class="heldout-chart" aria-live="polite"></div>
+          <p id="heldout-caption" class="eval-board-note"></p>
+        </article>
+        <article class="eval-board-card" aria-labelledby="devset-heading">
+          <h3 id="devset-heading" class="panel-heading">Development set versus baseline</h3>
+          <div id="devset-chart" class="devset-chart" aria-live="polite"></div>
+          <p class="eval-board-note">The development corpus was written alongside the engine, so its scores are an upper bound. The held-out notes were written after the lexicon was frozen and are the fairer number.</p>
+        </article>
+      </div>
+
+      <details class="heldout-details">
+        <summary>Every held-out note, with hits and misses</summary>
+        <div class="table-scroll-container">
+          <table class="lexicon-table eval-table">
+            <thead><tr><th scope="col">Note</th><th scope="col">Engine found</th><th scope="col">Engine missed</th><th scope="col">Capitals baseline missed</th></tr></thead>
+            <tbody id="heldout-tbody"></tbody>
+          </table>
+        </div>
+        <p id="heldout-rule" class="eval-footnote"></p>
+      </details>
 
       <div id="evaluation-drawer" class="evaluation-drawer" hidden>
         <div class="eval-tablist" role="tablist" aria-label="Evaluation report views">
@@ -363,6 +357,38 @@
         <div id="eval-panel-guardrails" class="eval-panel" role="tabpanel" aria-labelledby="eval-tab-guardrails" tabindex="0" hidden>
           <div id="eval-guardrails-body"></div>
         </div>
+      </div>
+    </section>
+
+    <section id="impact" class="impact-section" aria-labelledby="impact-heading">
+      <h2 id="impact-heading" class="section-heading">Safety, limits and who is affected</h2>
+      <div class="impact-grid">
+        <article class="impact-card impact-benefit">
+          <h3 class="impact-title">Who benefits</h3>
+          <ul class="impact-list">
+            <li>Patients and family caregivers who go home with a discharge note full of shorthand and need to know what each line asks them to do.</li>
+            <li>Spanish-speaking households, for the four preset notes, which have curated Spanish text and a bilingual printable schedule.</li>
+            <li>Nurses and pharmacists who want a quick term-by-term check of which phrases in a note still need explaining, with the exact source span shown.</li>
+          </ul>
+        </article>
+        <article class="impact-card impact-harm">
+          <h3 class="impact-title">Who could be harmed, and how</h3>
+          <ul class="impact-list">
+            <li>A reader who trusts the plain-language text over the clinician. The engine misses terms outside its 38-entry lexicon (<span id="impact-heldout-recall" class="tabular-nums">held-out recall pending</span>), and a missed term stays unexplained.</li>
+            <li>A reader of a note with negation. "No dyspnea" is still flagged as dyspnea, because the matcher has no sense of negation.</li>
+            <li>Spanish readers of pasted custom notes. Custom Spanish output is word substitution, not translation, and needs an interpreter.</li>
+            <li>Anyone relying on the add-on check for an item not on its list of four. An unlisted supplement shows no collision, which is not the same as safe.</li>
+          </ul>
+        </article>
+        <article class="impact-card impact-limits">
+          <h3 class="impact-title">Limitations</h3>
+          <ul class="impact-list">
+            <li>Every number on this page comes from synthetic notes written by one author. No real patient records were used and no patient comprehension study was run.</li>
+            <li>Readability is the English Flesch-Kincaid formula. It measures sentence and word length, not understanding, and it is not valid for Spanish.</li>
+            <li>The triage panel is a fixed checklist with set outcomes. It does not diagnose, and in doubt the answer is always to call 911.</li>
+            <li>The dose clock has eight fixed slots, so real prescribed times can be rounded to the nearest slot.</li>
+          </ul>
+        </article>
       </div>
     </section>
   </main>
@@ -407,7 +433,7 @@
   <footer class="site-footer no-print">
     <div class="footer-inner">
       <div class="footer-attribution-block">
-        <h2 class="footer-heading">Privacy Architecture &amp; Clinical Disclaimer</h2>
+        <h2 class="footer-heading">Privacy and clinical disclaimer</h2>
         <p class="footer-copy">
           <strong>100% Client-Side Privacy Architecture (Zero PHI Transmission):</strong> ClinNote executes its entire 38-term clinical NLP de-jargonizer, Flesch-Kincaid readability engine, 24-hour dosing timeline, and pharmacokinetic collision matrix locally inside your browser using pure JavaScript ES modules. A strict <code>Content-Security-Policy</code> with <code>connect-src 'none'</code> guarantees that zero patient health information (PHI) or custom discharge text is ever transmitted to any external server or cloud API.
         </p>

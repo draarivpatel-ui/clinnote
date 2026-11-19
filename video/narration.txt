@@ -1,0 +1,11 @@
+A hospital discharge note is written for the next clinician, not for the family driving home. ClinNote explains it term by term, right in the browser, with nothing uploaded.
+
+Here is the knee replacement note. Every highlighted span is an exact range of characters in the original. Pick BID, and its glossary row lights up with the plain meaning, twice a day, and the characters it came from. The same works in reverse, from any row back to the note.
+
+Now add over the counter ibuprofen. The add-on check flags a critical bleeding risk with the blood thinner, and the dose clock marks the collision hour in red.
+
+Switch to Spanish, and the instructions, labs and symptom checklist follow. Choosing a red flag symptom moves the outcome to the emergency department, and every outcome ends the same way. If in doubt, call 911.
+
+The evaluation runs live on the page. On twelve held-out notes written after the lexicon was frozen, ClinNote scores an F1 of 0.73 with zero false alarms. A simple rule that flags capital letters scores 0.72, so finding terms is not the win. The win is that every term comes with a plain explanation and its source. Recall is only 58 percent, and 26 of the 29 misses are terms the lexicon does not have.
+
+That is why the page says who could be harmed. Unexplained terms, negation and unlisted supplements are real risks, and a clinician still has the final word. ClinNote. Plain words, with the receipts.

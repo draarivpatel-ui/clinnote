@@ -1,5 +1,5 @@
 /**
- * ClinNote Swiss Medical Editorial Workbench UI Controller
+ * ClinNote clinical workstation UI controller
  * Drives bilingual EN/ES discharge de-jargonizing, 24-hour SVG dosing timeline,
  * OTC pharmacokinetic collision alerts, red-flag symptom triage, and refrigerator print view.
  */
@@ -11,7 +11,7 @@ import {
   applyAppAction,
   buildUiViewState
 } from './clinnote-engine.js';
-import { runEvaluation } from './evaluation.js';
+import { runEvaluation, evaluateHeldOut } from './evaluation.js';
 
 let appState = createInitialAppState();
 let evaluationReport = null;
@@ -21,7 +21,118 @@ function escapeHtml(raw) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
+/**
+ * Source note as markup: plain text is escaped, and every lexicon span becomes a
+ * numbered, focusable <mark> carrying its term id and exact character range.
+ * Overlapping spans (none occur with the current lexicon) are skipped, never merged.
+ */
+function renderProvenanceNote(text, spans) {
+  const source = String(text || '');
+  const kept = [];
+  let html = '';
+  let cursor = 0;
+  for (const span of spans || []) {
+    if (span.start < cursor) continue;
+    kept.push(span);
+    const n = kept.length;
+    html += escapeHtml(source.slice(cursor, span.start));
+    html += `<mark class="prov-mark" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
+    cursor = span.end;
+  }
+  html += escapeHtml(source.slice(cursor));
+  return { html, kept };
+}
+
+let linkedTermId = null;
+function setLinkedTerm(id) {
+  if (linkedTermId === id) return;
+  linkedTermId = id;
+  document.querySelectorAll('[data-term-id]').forEach((el) => {
+    el.classList.toggle('is-linked', id !== null && el.getAttribute('data-term-id') === id);
+  });
+}
+
+function barRow(label, value, tone, max = 1) {
+  const v = Number(value);
+  const pct = Math.max(0, Math.min(100, (v / max) * 100));
+  return `
+    <div class="bar-row" data-tone="${escapeHtml(tone)}">
+      <span class="bar-label">${escapeHtml(label)}</span>
+      <span class="bar-track" aria-hidden="true"><span class="bar-fill" style="width:${pct.toFixed(1)}%"></span></span>
+      <span class="bar-value tabular-nums">${escapeHtml(v.toFixed(4))}</span>
+    </div>`;
+}
+
+function renderEvalBoard() {
+  const h = evaluateHeldOut();
+  const dev = runEvaluation({ nowFn: () => 0, repeats: 1 });
+  const e = h.engine;
+  const c = h.capsBaseline;
+  const z = h.echoBaseline;
+
+  setHtml('eval-glance', `
+    <div class="glance-figure">
+      <strong class="glance-number tabular-nums">${escapeHtml(e.f1.toFixed(4))}</strong>
+      <span class="glance-unit">F1 on ${h.notes} unseen notes</span>
+    </div>
+    <div class="bar-group" role="img" aria-label="Held-out F1. ClinNote ${escapeHtml(e.f1.toFixed(4))}, capitals baseline ${escapeHtml(c.f1.toFixed(4))}, echo baseline ${escapeHtml(z.f1.toFixed(4))}.">
+      ${barRow('ClinNote', e.f1, 'engine')}
+      ${barRow('Capitals rule', c.f1, 'caps')}
+      ${barRow('Echo note', z.f1, 'echo')}
+    </div>
+    <p class="glance-note">Twelve new discharge notes, labeled before the first run and never used for tuning. A rule that flags any token with two capital letters finds ${c.tp} terms to ClinNote's ${e.tp}, so detection alone is close to a tie. The difference is that every term ClinNote finds comes with a plain explanation and its source span.</p>
+    <dl class="glance-facts">
+      <div><dt>Precision</dt><dd class="tabular-nums">${escapeHtml(e.precision.toFixed(4))}</dd></div>
+      <div><dt>Recall</dt><dd class="tabular-nums">${escapeHtml(e.recall.toFixed(4))}</dd></div>
+      <div><dt>False alarms</dt><dd class="tabular-nums">${e.fp}</dd></div>
+      <div><dt>Labels found</dt><dd class="tabular-nums">${e.tp} of ${h.labels}</dd></div>
+      <div><dt>Notes</dt><dd class="tabular-nums">${h.notes}</dd></div>
+      <div><dt>Written</dt><dd class="tabular-nums">${escapeHtml(h.date)}</dd></div>
+    </dl>`);
+
+  const metricBlock = (title, key) => `
+    <div class="metric-block">
+      <span class="metric-block-title">${escapeHtml(title)}</span>
+      <div class="bar-group">
+        ${barRow('ClinNote', e[key], 'engine')}
+        ${barRow('Capitals rule', c[key], 'caps')}
+        ${barRow('Echo note', z[key], 'echo')}
+      </div>
+    </div>`;
+  setHtml('heldout-chart', metricBlock('F1', 'f1') + metricBlock('Precision', 'precision') + metricBlock('Recall', 'recall'));
+  setText('heldout-caption', `ClinNote finds ${e.tp} of ${h.labels} labeled terms with ${e.fp} false alarms. The capitals rule, which flags any token with two capital letters, finds ${c.tp} with ${c.fp}. Of the ${e.fn} terms ClinNote misses, ${e.missBreakdown.outOfLexicon} are not in its 38-term lexicon and ${e.missBreakdown.formVariant} are spelling variants of terms it knows, so the lexicon is the bottleneck. The capitals rule can only point at a term; ClinNote also explains it.`);
+
+  const m = dev.metrics;
+  const b = dev.baseline;
+  const pair = (title, engineValue, baseValue) => `
+    <div class="metric-block">
+      <span class="metric-block-title">${escapeHtml(title)}</span>
+      <div class="bar-group">
+        ${barRow('ClinNote', engineValue, 'engine')}
+        ${barRow('Echo baseline', baseValue, 'echo')}
+      </div>
+    </div>`;
+  setHtml('devset-chart',
+    pair('Term detection F1', m.termDetectionF1, b.termDetectionF1) +
+    pair('Collision detection F1', m.collisionF1, b.collisionF1) +
+    pair('Triage accuracy', m.triageAccuracy, b.triageAccuracy));
+
+  const list = (items) => (items.length ? items.map((t) => `<span class="term-chip">${escapeHtml(t)}</span>`).join(' ') : '<span class="term-none">none</span>');
+  setHtml('heldout-tbody', e.perCase.map((row, i) => `
+    <tr class="lexicon-row">
+      <td>${escapeHtml(row.label)}</td>
+      <td>${list(row.hits)}</td>
+      <td>${list(row.misses)}</td>
+      <td>${list(c.perCase[i].misses)}</td>
+    </tr>`).join(''));
+  setText('heldout-rule', `Labeling rule: ${h.rule} Notes and labels were written on ${h.date}, after the engine and lexicon were frozen, and the score above is the first run. One author wrote both notes and labels.`);
+  setText('impact-heldout-recall', `held-out recall ${e.recall.toFixed(4)}, ${e.fn} of ${h.labels} terms missed`);
 }
 
 function setText(id, value) {
@@ -53,20 +164,20 @@ function renderSvgTimeline(scheduleReport) {
     const hasItems = itemCount > 0;
 
     const strokeColor = isCollision
-      ? '#C92A2A'
+      ? '#C2352B'
       : hasItems
-      ? '#0D7A5F'
-      : '#949B96';
+      ? '#14786A'
+      : '#9AA8AA';
     const fillColor = isCollision
-      ? '#FDECEC'
+      ? '#FCEBE9'
       : hasItems
-      ? '#E6F4EF'
-      : '#F7F5F0';
+      ? '#E3F3EF'
+      : '#FFFFFF';
     const textColor = isCollision
-      ? '#9B1C1C'
+      ? '#9E2A22'
       : hasItems
-      ? '#095C47'
-      : '#525B65';
+      ? '#0E5C51'
+      : '#5B6B70';
 
     const statusTag = isCollision
       ? 'COLLISION'
@@ -79,15 +190,15 @@ function renderSvgTimeline(scheduleReport) {
       const py = 122 + pIdx * 22;
       const isOtc = Object.is(item.kind, 'OTC');
       const pillFill = isCollision
-        ? '#C92A2A'
+        ? '#C2352B'
         : isOtc
-        ? '#C8640A'
-        : '#111820';
+        ? '#9A520A'
+        : '#123236';
       const shortLabel = escapeHtml(item.name.split(' ').slice(0, 2).join(' '));
       pillPills += `
         <g transform="translate(${cx - 52}, ${py})">
           <rect x="0" y="0" width="104" height="18" rx="3" fill="${pillFill}" />
-          <text x="52" y="12.5" text-anchor="middle" fill="#F7F5F0" font-family="JetBrains Mono, monospace" font-size="9.5" font-weight="600">${shortLabel}</text>
+          <text x="52" y="12.5" text-anchor="middle" fill="#FFFFFF" font-family="${MONO_STACK}" font-size="9.5" font-weight="600">${shortLabel}</text>
         </g>
       `;
     });
@@ -96,9 +207,9 @@ function renderSvgTimeline(scheduleReport) {
       <g class="clock-node-group">
         <line x1="${cx}" y1="46" x2="${cx}" y2="112" stroke="${strokeColor}" stroke-width="1.5" stroke-dasharray="${hasItems ? 'none' : '3 3'}" />
         <circle cx="${cx}" cy="76" r="${isCollision ? 20 : 17}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${isCollision ? 2.5 : 1.75}" />
-        <text x="${cx}" y="34" text-anchor="middle" fill="#111820" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700">${slot.hour}</text>
-        <text x="${cx}" y="80" text-anchor="middle" fill="${textColor}" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">${itemCount}</text>
-        <text x="${cx}" y="108" text-anchor="middle" fill="${textColor}" font-family="JetBrains Mono, monospace" font-size="9" font-weight="600">${statusTag}</text>
+        <text x="${cx}" y="34" text-anchor="middle" fill="#123236" font-family="${MONO_STACK}" font-size="12" font-weight="700">${slot.hour}</text>
+        <text x="${cx}" y="80" text-anchor="middle" fill="${textColor}" font-family="${MONO_STACK}" font-size="11" font-weight="700">${itemCount}</text>
+        <text x="${cx}" y="108" text-anchor="middle" fill="${textColor}" font-family="${MONO_STACK}" font-size="9" font-weight="600">${statusTag}</text>
         ${pillPills}
       </g>
     `;
@@ -106,8 +217,8 @@ function renderSvgTimeline(scheduleReport) {
 
   return `
     <svg class="timeline-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="24-hour clinical medication dosing timeline from ${slots[0].hour} to ${slots[slots.length - 1].hour}">
-      <rect x="8" y="8" width="${svgWidth - 16}" height="${svgHeight - 16}" rx="6" fill="#EFECE4" stroke="#D5D0C5" stroke-width="1" />
-      <line x1="${startX}" y1="76" x2="${startX + (slots.length - 1) * colWidth}" y2="76" stroke="#C5BFB2" stroke-width="2" />
+      <rect x="8" y="8" width="${svgWidth - 16}" height="${svgHeight - 16}" rx="10" fill="#F5F8F8" stroke="#D9E2E3" stroke-width="1" />
+      <line x1="${startX}" y1="76" x2="${startX + (slots.length - 1) * colWidth}" y2="76" stroke="#C9D5D6" stroke-width="2" />
       ${nodesMarkup}
     </svg>
   `;
@@ -317,7 +428,9 @@ function renderApp() {
   setText('active-scenario-dept', view.departmentLabel);
   setText('active-scenario-title', view.scenarioTitle);
   setText('active-patient-context', view.patientContext);
-  setText('raw-clinical-note-display', view.rawClinicalNote);
+  const provenance = renderProvenanceNote(view.rawClinicalNote, view.sourceSpans);
+  setHtml('raw-clinical-note-display', provenance.html);
+  linkedTermId = null;
   setText('plain-patient-note-display', view.plainPatientParagraph);
 
   // Readability telemetry metrics
@@ -346,17 +459,31 @@ function renderApp() {
 
   // Matched jargon glossary chips/table
   const matches = view.nlpAnalysis.matchedTerms;
+  setText('provenance-summary', `${provenance.kept.length} ${provenance.kept.length === 1 ? 'span' : 'spans'}, ${matches.length} ${matches.length === 1 ? 'term' : 'terms'}`);
   if (matches.length > 0) {
-    const rowsHtml = matches
-      .map(
-        (m) => `
-        <tr class="lexicon-row">
-          <td class="mono-cell"><span class="jargon-token">${escapeHtml(m.term)}</span></td>
-          <td class="category-cell">${escapeHtml(m.category)}</td>
+    const spanIndex = new Map();
+    provenance.kept.forEach((span, i) => {
+      if (!spanIndex.has(span.id)) spanIndex.set(span.id, []);
+      spanIndex.get(span.id).push({ n: i + 1, start: span.start, end: span.end });
+    });
+    const ordered = [...matches].sort((a, b) => {
+      const sa = spanIndex.get(a.id);
+      const sb = spanIndex.get(b.id);
+      return (sa ? sa[0].n : 1e9) - (sb ? sb[0].n : 1e9);
+    });
+    const rowsHtml = ordered
+      .map((m) => {
+        const refs = spanIndex.get(m.id) || [];
+        const chips = refs
+          .map((r) => `<span class="span-chip tabular-nums"><b>${r.n}</b> ${r.start} to ${r.end}</span>`)
+          .join('');
+        return `
+        <tr class="lexicon-row" data-term-id="${escapeHtml(m.id)}" tabindex="0">
+          <td class="mono-cell"><span class="jargon-token">${escapeHtml(m.term)}</span><span class="term-class">${escapeHtml(m.category)}</span></td>
           <td class="plain-cell">${escapeHtml(m.plainReplacement)}</td>
-        </tr>
-      `
-      )
+          <td class="span-cell">${chips}</td>
+        </tr>`;
+      })
       .join('');
     setHtml('jargon-glossary-tbody', rowsHtml);
   } else {
@@ -671,6 +798,10 @@ function bindEvents() {
         if (willOpen) {
           renderEvaluation();
           setActiveEvalTab('metrics', true);
+          const section = document.getElementById('evaluation-heading');
+          if (section && typeof section.scrollIntoView === 'function') {
+            section.scrollIntoView({ block: 'start' });
+          }
         }
       }
       return;
@@ -678,6 +809,7 @@ function bindEvents() {
 
     const runEvalBtn = event.target.closest('#run-evaluation-btn');
     if (runEvalBtn) {
+      renderEvalBoard();
       const drawer = document.getElementById('evaluation-drawer');
       const toggle = document.getElementById('open-evaluation-btn');
       if (drawer && drawer.hidden) {
@@ -693,8 +825,28 @@ function bindEvents() {
     const evalTab = event.target.closest('[data-eval-tab]');
     if (evalTab) {
       setActiveEvalTab(evalTab.getAttribute('data-eval-tab'), false);
+      return;
+    }
+
+    const glossaryRow = event.target.closest('[data-term-id]');
+    if (glossaryRow && glossaryRow.tagName === 'TR') {
+      const id = glossaryRow.getAttribute('data-term-id');
+      const firstMark = [...document.querySelectorAll('[data-term-id]')].find(
+        (el) => el.tagName === 'MARK' && el.getAttribute('data-term-id') === id
+      );
+      if (firstMark) {
+        firstMark.focus();
+        setLinkedTerm(id);
+      }
     }
   });
+
+  const linkFromEvent = (event) => {
+    const host = event.target && event.target.closest ? event.target.closest('[data-term-id]') : null;
+    setLinkedTerm(host ? host.getAttribute('data-term-id') : null);
+  };
+  document.addEventListener('mouseover', linkFromEvent);
+  document.addEventListener('focusin', linkFromEvent);
 
   document.addEventListener('keydown', (event) => {
     const tab = event.target.closest && event.target.closest('[data-eval-tab]');
@@ -727,9 +879,11 @@ if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       bindEvents();
       renderApp();
+      renderEvalBoard();
     });
   } else {
     bindEvents();
     renderApp();
+    renderEvalBoard();
   }
 }

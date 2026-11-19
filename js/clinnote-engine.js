@@ -818,6 +818,36 @@ export function detectJargonMatches(text, lang = 'en') {
   return matches;
 }
 
+/**
+ * Provenance: every lexicon hit as an exact character span of the source text.
+ * Uses the same patterns as detectJargonMatches, so the span count per term equals
+ * that term's `occurrences`. `text.slice(start, end)` is always the matched surface form.
+ */
+export function locateJargonSpans(text) {
+  if (typeof text !== 'string' || text.length === 0) {
+    return [];
+  }
+  const spans = [];
+  for (const entry of CLINICAL_LEXICON) {
+    const regex = new RegExp(entry.pattern, 'gi');
+    let m = regex.exec(text);
+    while (m !== null) {
+      spans.push({
+        id: entry.id,
+        term: entry.term,
+        category: entry.category,
+        start: m.index,
+        end: m.index + m[0].length,
+        text: m[0]
+      });
+      if (m[0].length === 0) regex.lastIndex += 1;
+      m = regex.exec(text);
+    }
+  }
+  spans.sort((a, b) => a.start - b.start || b.end - a.end);
+  return spans;
+}
+
 export function computeReadabilityMetrics(text) {
   if (typeof text !== 'string' || text.trim().length === 0) {
     return {
@@ -1446,6 +1476,7 @@ export function buildUiViewState(state) {
     patientContext:
       safeLang === 'es' ? scenario.patientContextEs : scenario.patientContextEn,
     rawClinicalNote: sourceNote,
+    sourceSpans: locateJargonSpans(sourceNote),
     plainPatientParagraph,
     nlpAnalysis,
     medications: scenario.medications,
