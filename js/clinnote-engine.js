@@ -1285,7 +1285,6 @@ export function evaluateSymptomTriage(
   lang = 'en'
 ) {
   const isEs = lang === 'es';
-  const safeLang = isEs ? 'es' : 'en';
   const scenario = getScenarioById(scenarioId);
   const selectedSet = new Set(
     Array.isArray(selectedSymptomIds) ? selectedSymptomIds : []
