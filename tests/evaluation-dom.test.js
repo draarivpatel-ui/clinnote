@@ -365,11 +365,11 @@ test('Eval DOM 03: the drawer starts hidden and opens on toggle with metrics rec
   assert.match(grid.innerHTML, /Latency per operation/);
 });
 
-test('Eval DOM 04: all eight metric cards render real computed values, no placeholders', () => {
+test('Eval DOM 04: all ten metric cards render real computed values, no placeholders', () => {
   const { doc } = bootApp();
   doc.fire('click', doc.getElementById('open-evaluation-btn'));
   const html = doc.getElementById('eval-metrics-grid').innerHTML;
-  assert.equal((html.match(/eval-metric-card/g) || []).length, 8);
+  assert.equal((html.match(/eval-metric-card/g) || []).length, 10);
   assert.match(html, /Combined Brier/);
   assert.match(html, /Failure probes confirmed/);
   assert.equal(/TODO|lorem|placeholder|Coming soon/i.test(html), false);
@@ -415,13 +415,13 @@ test('Eval DOM 07: arrow, Home and End keys move tab focus with roving tabindex'
   assert.equal(doc.activeElement, doc.getElementById('eval-tab-guardrails'));
 });
 
-test('Eval DOM 08: failure tab renders all eight probed conditions with status and mitigation', () => {
+test('Eval DOM 08: failure tab renders all ten probed conditions with status and mitigation', () => {
   const { doc } = bootApp();
   doc.fire('click', doc.getElementById('open-evaluation-btn'));
   const html = doc.getElementById('eval-failures-body').innerHTML;
-  assert.equal((html.match(/eval-failure-card/g) || []).length, 8);
-  assert.equal((html.match(/eval-status-pill/g) || []).length, 8);
-  assert.match(html, /Negation is not resolved/);
+  assert.equal((html.match(/eval-failure-card/g) || []).length, 10);
+  assert.equal((html.match(/eval-status-pill/g) || []).length, 10);
+  assert.match(html, /Negation is flagged but not clinically resolved/);
   assert.match(html, /Guardrail:/);
   assert.match(html, /Probe output:/);
   assert.equal(/unexpected/.test(html), false);

@@ -9,12 +9,17 @@ import {
   OTC_ADDONS,
   createInitialAppState,
   applyAppAction,
-  buildUiViewState
+  buildUiViewState,
+  verifyGeneratedText,
+  buildAuditTrail,
+  exportAuditTrail
 } from './clinnote-engine.js';
 import { runEvaluation, evaluateHeldOut } from './evaluation.js';
 
 let appState = createInitialAppState();
 let evaluationReport = null;
+let lastClaimCheck = { results: [], total: 0, supported: 0, unsupported: 0, precision: 1 };
+let draftAuditText = '';
 
 function escapeHtml(raw) {
   return String(raw || '')
@@ -43,7 +48,7 @@ function renderProvenanceNote(text, spans) {
     const n = kept.length;
     html += escapeHtml(source.slice(cursor, span.start));
     const negCls = span.negated ? ' is-negated' : '';
-    html += `<mark class="prov-mark${negCls}" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}${span.negated ? ' (negated)' : ''}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
+    html += `<mark class="prov-mark${negCls}" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" data-start="${span.start}" data-end="${span.end}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}${span.negated ? ' (negated)' : ''}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
     cursor = span.end;
   }
   html += escapeHtml(source.slice(cursor));
@@ -57,6 +62,162 @@ function setLinkedTerm(id) {
   document.querySelectorAll('[data-term-id]').forEach((el) => {
     el.classList.toggle('is-linked', id !== null && el.getAttribute('data-term-id') === id);
   });
+}
+
+const CLAIM_TYPE_LABELS = {
+  medication: 'medication',
+  lab: 'lab',
+  dosage: 'dose',
+  date: 'date'
+};
+
+function claimReasonText(r) {
+  const c = r.claim;
+  if (r.supported) {
+    if (r.reason === 'exact-match') return 'exact text found in the source note';
+    if (r.reason === 'subject-value-match') return `value ${c.value}${c.unit ? ` ${c.unit}` : ''} confirmed next to ${c.subject} in the source`;
+    if (r.reason === 'subject-match') return 'subject found in the source note';
+    return 'value found in the source note';
+  }
+  const found = Array.isArray(r.found) && r.found.length ? `; source shows ${r.found.slice(0, 4).join(', ')}` : '; nothing matching in the source';
+  if (r.reason === 'unsupported') return 'subject not found anywhere in the source note';
+  if (r.reason === 'unit-mismatch') return `claims ${c.unit}; source uses ${r.detail && r.detail.foundUnit ? r.detail.foundUnit : 'a different unit'} for ${c.subject}`;
+  if (r.reason === 'date-mismatch') return `this date is not in the source${found}`;
+  if (r.reason === 'lab-value-mismatch') return `claims ${c.value}${c.unit ? ` ${c.unit}` : ''} for ${c.subject}${found}`;
+  return `claims ${c.value}${c.unit ? ` ${c.unit}` : ''}${found}`;
+}
+
+function claimSourceExcerpt(r, sourceText) {
+  if (!r.spans || r.spans.length === 0) return '';
+  const s = r.spans[0];
+  const lo = Math.max(0, s.start - 24);
+  const hi = Math.min(sourceText.length, s.end + 24);
+  const before = escapeHtml(sourceText.slice(lo, s.start));
+  const mid = escapeHtml(sourceText.slice(s.start, s.end));
+  const after = escapeHtml(sourceText.slice(s.end, hi));
+  return `<span class="claim-excerpt mono-text" aria-label="source excerpt">${lo > 0 ? '&hellip;' : ''}${before}<mark class="claim-src-mark">${mid}</mark>${after}${hi < sourceText.length ? '&hellip;' : ''}</span>`;
+}
+
+/** Output text with unsupported claims wrapped in flagged <mark> badges. */
+function renderPlainOutputWithClaims(text, claimCheck) {
+  const source = String(text || '');
+  const flagged = (claimCheck.results || [])
+    .map((r, i) => ({ ...r, idx: i }))
+    .filter((r) => !r.supported)
+    .sort((a, b) => a.claimStart - b.claimStart);
+  let html = '';
+  let cursor = 0;
+  for (const r of flagged) {
+    if (r.claimStart < cursor) continue;
+    html += escapeHtml(source.slice(cursor, r.claimStart));
+    html += `<mark class="claim-flag" data-claim-idx="${r.idx}" tabindex="0" title="${escapeHtml(`flagged: ${r.reason}`)}">${escapeHtml(source.slice(r.claimStart, r.claimEnd))}</mark>`;
+    cursor = r.claimEnd;
+  }
+  html += escapeHtml(source.slice(cursor));
+  return html;
+}
+
+function renderClaimCheckPanel(claimCheck, sourceText, isEs) {
+  const results = claimCheck.results || [];
+  const flagged = results.filter((r) => !r.supported);
+  setText('claim-check-summary', results.length === 0
+    ? (isEs
+      ? 'No se encontraron afirmaciones numericas en esta salida.'
+      : 'No checkable numeric claims found in this output.')
+    : (isEs
+      ? `${results.length} afirmaciones verificadas, ${flagged.length} marcadas.`
+      : `${results.length} claims checked, ${flagged.length} flagged.`));
+  if (results.length === 0) {
+    setHtml('claim-check-list', `<li class="claim-row claim-row-empty" data-status="verified"><span class="claim-detail">${
+      isEs ? 'No hay nada que verificar en esta salida.' : 'Nothing to verify in this output.'
+    }</span></li>`);
+    return;
+  }
+  const rowsHtml = results
+    .map((r, i) => {
+      const status = r.supported ? 'verified' : 'flagged';
+      const typeLabel = CLAIM_TYPE_LABELS[r.claim.type] || 'claim';
+      const excerpt = claimSourceExcerpt(r, sourceText);
+      return `
+      <li class="claim-row" data-status="${status}">
+        <button type="button" class="claim-row-btn" data-claim-idx="${i}" aria-label="${escapeHtml(`${status} claim: ${r.claim.raw}`)}">
+          <span class="claim-row-top">
+            <span class="claim-raw mono-text">${escapeHtml(r.claim.raw)}</span>
+            <span class="claim-kind">${escapeHtml(typeLabel)}</span>
+            <span class="claim-pill" data-state="${status}">${status === 'flagged' ? 'flagged' : 'verified'}</span>
+          </span>
+          <span class="claim-detail">${escapeHtml(claimReasonText(r))}</span>
+          ${excerpt}
+        </button>
+      </li>`;
+    })
+    .join('');
+  setHtml('claim-check-list', rowsHtml);
+}
+
+function deferUnjump(el, classes) {
+  const clear = () => classes.forEach((c) => el.classList.remove(c));
+  if (typeof setTimeout === 'function') {
+    setTimeout(clear, 1500);
+  } else {
+    clear();
+  }
+}
+
+/** Jump from a claim row or flag badge to the matching span in the source note. */
+function jumpToClaimSource(idx) {
+  const r = (lastClaimCheck.results || [])[idx];
+  const noteBox = document.getElementById('raw-clinical-note-display');
+  const row = document.querySelector(`[data-claim-idx="${idx}"]`);
+  if (row && row.classList) {
+    row.classList.add('is-jump');
+    deferUnjump(row, ['is-jump']);
+  }
+  if (!noteBox) return;
+  let target = null;
+  if (r && Array.isArray(r.spans) && r.spans.length > 0) {
+    const s = r.spans[0];
+    const marks = document.querySelectorAll('[data-start]');
+    for (const el of marks) {
+      const ms = Number(el.getAttribute('data-start'));
+      const me = Number(el.getAttribute('data-end'));
+      if (Number.isFinite(ms) && Number.isFinite(me) && ms <= s.end && me >= s.start) {
+        target = el;
+        break;
+      }
+    }
+  }
+  const host = target || noteBox;
+  if (typeof host.scrollIntoView === 'function') {
+    host.scrollIntoView({ block: 'center' });
+  }
+  host.classList.add(target ? 'is-jump' : 'is-jump-flash');
+  deferUnjump(host, ['is-jump', 'is-jump-flash']);
+}
+
+/** Build and download the audit trail; returns the payload so tests can read it. */
+function downloadAuditTrail(format, view) {
+  const auditedView = draftAuditText.trim()
+    ? { ...view, plainPatientParagraph: draftAuditText }
+    : view;
+  const entries = buildAuditTrail(auditedView);
+  const payload = exportAuditTrail(entries, format);
+  if (
+    typeof URL !== 'undefined'
+    && typeof URL.createObjectURL === 'function'
+    && typeof Blob !== 'undefined'
+    && typeof document !== 'undefined'
+    && typeof document.createElement === 'function'
+  ) {
+    const mime = format === 'csv' ? 'text/csv' : 'application/json';
+    const blob = new Blob([payload], { type: `${mime};charset=utf-8` });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `clinnote-audit.${format === 'csv' ? 'csv' : 'json'}`;
+    a.click();
+    if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(a.href);
+  }
+  return payload;
 }
 
 function barRow(label, value, tone, max = 1) {
@@ -123,6 +284,20 @@ function renderEvalBoard() {
     pair('Term detection F1', m.termDetectionF1, b.termDetectionF1) +
     pair('Collision detection F1', m.collisionF1, b.collisionF1) +
     pair('Triage accuracy', m.triageAccuracy, b.triageAccuracy));
+
+  const single = (title, value, note) => `
+    <div class="metric-block">
+      <span class="metric-block-title">${escapeHtml(title)}</span>
+      <div class="bar-group">
+        ${barRow('ClinNote', value, 'engine')}
+      </div>
+      <span class="metric-block-note">${escapeHtml(note)}</span>
+    </div>`;
+  setHtml('claim-eval-chart',
+    single('Negation flag F1', m.negationF1, `precision ${m.negationPrecision.toFixed(4)} / recall ${m.negationRecall.toFixed(4)} on ${dev.corpus.negationCases} labeled notes`) +
+    single('Claim catch rate', m.claimCatchRate, `${dev.tasks.claimCheck.actualFlags} flags on planted mismatches across ${dev.corpus.claimCheckCases} cases`) +
+    single('Claim flag accuracy', m.claimFlagAccuracy, `exact flag count per case; false-flag rate ${m.claimFalseFlagRate.toFixed(4)}`));
+  setText('claim-eval-caption', 'Every dose, lab value and date in the shown output is checked against the source note and flagged when the source does not support it. The negation set includes sentence, comma and pseudo-negation boundary traps so a cue cannot bleed across a clause.');
 
   const list = (items) => (items.length ? items.map((t) => `<span class="term-chip">${escapeHtml(t)}</span>`).join(' ') : '<span class="term-none">none</span>');
   setHtml('heldout-tbody', e.perCase.map((row, i) => `
@@ -243,6 +418,8 @@ function renderEvaluation() {
     { label: 'Term detection Brier', value: formatEvalNumber(m.termDetectionBrier), note: 'Lower is better (0 = exact)' },
     { label: 'Collision detection F1', value: formatEvalNumber(m.collisionF1), note: `${r.corpus.collisionCases} labeled regimens` },
     { label: 'Triage accuracy', value: formatEvalNumber(m.triageAccuracy), note: `F1 ${formatEvalNumber(m.triageF1)} / Brier ${formatEvalNumber(m.triageBrier)}` },
+    { label: 'Negation flag F1', value: formatEvalNumber(m.negationF1), note: `${r.corpus.negationCases} labeled notes, case accuracy ${formatEvalNumber(m.negationAccuracy)}` },
+    { label: 'Claim catch rate', value: formatEvalNumber(m.claimCatchRate), note: `Planted mismatches flagged across ${r.corpus.claimCheckCases} cases` },
     { label: 'Mean output formula score', value: m.meanGradeAfter.toFixed(2), note: `Mean source minus output ${m.meanGradeDrop.toFixed(2)}; Spanish estimate unvalidated` },
     { label: 'Latency per operation', value: `${m.meanMsPerOperation} ms`, note: `${m.meanMsPerFullSuite} ms for the full suite` },
     { label: 'Combined Brier', value: formatEvalNumber(m.combinedBrier), note: 'Mean of term and triage Brier' },
@@ -347,6 +524,12 @@ function renderEvaluation() {
     })),
     ...r.tasks.triage.perCase.map((c) => ({
       label: c.label, expected: c.expected, predicted: c.predicted, correct: c.correct, extra: `Urgency ${c.urgencyScore}/100, ${c.activeSymptomCount} symptoms`
+    })),
+    ...r.tasks.negation.perCase.map((c) => ({
+      label: c.label, expected: c.expected.join(', ') || '(none negated)', predicted: c.predicted.join(', ') || '(none flagged)', correct: c.correct, extra: `Negated term IDs: tp ${c.tp} / fp ${c.fp} / fn ${c.fn}`
+    })),
+    ...r.tasks.claimCheck.perCase.map((c) => ({
+      label: c.label, expected: c.expected, predicted: c.predicted, correct: c.correct, extra: `Flag reasons: ${c.reasons.join(', ') || '(none)'}`
     }))
   ];
   setHtml(
@@ -432,7 +615,31 @@ function renderApp() {
   const provenance = renderProvenanceNote(view.rawClinicalNote, view.sourceSpans);
   setHtml('raw-clinical-note-display', provenance.html);
   linkedTermId = null;
-  setText('plain-patient-note-display', view.plainPatientParagraph);
+
+  const draft = draftAuditText.trim();
+  const auditedText = draft ? draftAuditText : view.plainPatientParagraph;
+  lastClaimCheck = verifyGeneratedText(view.rawClinicalNote, auditedText);
+  const auditBox = document.getElementById('claim-audit-text');
+  if (draft) {
+    setHtml('plain-patient-note-display', escapeHtml(view.plainPatientParagraph));
+    if (auditBox) {
+      setHtml('claim-audit-text', renderPlainOutputWithClaims(draftAuditText, lastClaimCheck));
+      auditBox.hidden = false;
+    }
+    setText('claim-audit-mode', isEs
+      ? 'Auditando tu borrador pegado, abajo:'
+      : 'Auditing your pasted draft, shown below:');
+  } else {
+    setHtml('plain-patient-note-display', renderPlainOutputWithClaims(view.plainPatientParagraph, lastClaimCheck));
+    if (auditBox) {
+      auditBox.hidden = true;
+      auditBox.innerHTML = '';
+    }
+    setText('claim-audit-mode', isEs
+      ? 'Auditando la guia generada de arriba.'
+      : 'Auditing the generated guide above.');
+  }
+  renderClaimCheckPanel(lastClaimCheck, view.rawClinicalNote, isEs);
 
   // Readability telemetry metrics
   setText('metric-grade-before', `Grade ${view.nlpAnalysis.gradeBefore.toFixed(1)}`);
@@ -460,12 +667,13 @@ function renderApp() {
 
   // Matched jargon glossary chips/table
   const matches = view.nlpAnalysis.matchedTerms;
-  setText('provenance-summary', `${provenance.kept.length} ${provenance.kept.length === 1 ? 'span' : 'spans'}, ${matches.length} ${matches.length === 1 ? 'term' : 'terms'}`);
+  const negatedCount = provenance.kept.filter((s) => s.negated === true).length;
+  setText('provenance-summary', `${provenance.kept.length} ${provenance.kept.length === 1 ? 'span' : 'spans'}, ${matches.length} ${matches.length === 1 ? 'term' : 'terms'}${negatedCount ? `, ${negatedCount} negated` : ''}`);
   if (matches.length > 0) {
     const spanIndex = new Map();
     provenance.kept.forEach((span, i) => {
       if (!spanIndex.has(span.id)) spanIndex.set(span.id, []);
-      spanIndex.get(span.id).push({ n: i + 1, start: span.start, end: span.end });
+      spanIndex.get(span.id).push({ n: i + 1, start: span.start, end: span.end, negated: span.negated === true });
     });
     const ordered = [...matches].sort((a, b) => {
       const sa = spanIndex.get(a.id);
@@ -476,7 +684,7 @@ function renderApp() {
       .map((m) => {
         const refs = spanIndex.get(m.id) || [];
         const chips = refs
-          .map((r) => `<span class="span-chip tabular-nums"><b>${r.n}</b> ${r.start} to ${r.end}</span>`)
+          .map((r) => `<span class="span-chip tabular-nums${r.negated ? ' is-negated' : ''}"><b>${r.n}</b> ${r.start} to ${r.end}${r.negated ? ' <i>negated</i>' : ''}</span>`)
           .join('');
         return `
         <tr class="lexicon-row" data-term-id="${escapeHtml(m.id)}" tabindex="0">
@@ -829,6 +1037,38 @@ function bindEvents() {
       return;
     }
 
+    const claimFilterBtn = event.target.closest('[data-claim-filter]');
+    if (claimFilterBtn) {
+      const filter = claimFilterBtn.getAttribute('data-claim-filter') || 'all';
+      const list = document.getElementById('claim-check-list');
+      if (list) list.setAttribute('data-filter', filter);
+      document.querySelectorAll('[data-claim-filter]').forEach((btn) => {
+        const active = btn.getAttribute('data-claim-filter') === filter;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      });
+      return;
+    }
+
+    const claimEl = event.target.closest('[data-claim-idx]');
+    if (claimEl) {
+      const idx = Number(claimEl.getAttribute('data-claim-idx'));
+      if (Number.isFinite(idx)) jumpToClaimSource(idx);
+      return;
+    }
+
+    const auditJsonBtn = event.target.closest('#audit-export-json-btn');
+    if (auditJsonBtn) {
+      downloadAuditTrail('json', buildUiViewState(appState));
+      return;
+    }
+
+    const auditCsvBtn = event.target.closest('#audit-export-csv-btn');
+    if (auditCsvBtn) {
+      downloadAuditTrail('csv', buildUiViewState(appState));
+      return;
+    }
+
     const glossaryRow = event.target.closest('[data-term-id]');
     if (glossaryRow && glossaryRow.tagName === 'TR') {
       const id = glossaryRow.getAttribute('data-term-id');
@@ -871,6 +1111,14 @@ function bindEvents() {
         type: 'SET_CUSTOM_TEXT',
         text: event.target.value
       });
+    });
+  }
+
+  const draftInput = document.getElementById('draft-audit-textarea');
+  if (draftInput) {
+    draftInput.addEventListener('input', (event) => {
+      draftAuditText = event.target.value || '';
+      renderApp();
     });
   }
 }

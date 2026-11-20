@@ -1,6 +1,6 @@
 # ClinNote medicine-event upgrade notes
 
-The Nov 15 upgrade adds a reproducible evaluation to the existing browser workbench. All cases are synthetic; the benchmark uses no external service.
+The Nov 15 upgrade adds a reproducible evaluation to the existing browser workbench. The Nov 20 wave (benchmark version 2.0.0) adds scoped negation, source-anchored claim verification and a claim-audit panel. All cases are synthetic; the benchmark uses no external service.
 
 ## Changes ready for the next review
 
@@ -16,11 +16,11 @@ The Nov 15 upgrade adds a reproducible evaluation to the existing browser workbe
 | Custom-note printing | Custom text disables the print action and replaces all printable scenario medication instructions with a bilingual safety notice. |
 | Triage guardrail | Every disposition shows the live selected-symptom count and emergency-services advice when in doubt, in English and Spanish. |
 | Asset and source hygiene | The JPEG was re-encoded without provenance metadata. Generic privacy checks decode character arrays, escapes, hex and base64 without embedding personal values. Image and compressed font metadata are scanned, and synthetic fixtures prove detection. |
-| Tests | See README for the current count. Held-out set, provenance and offline checks were added on 2026-11-18. |
+| Tests | See README for the current count. Held-out set, provenance and offline checks were added on 2026-11-18; negation, claim-verification and audit-UI regressions on 2026-11-20. |
 
 ## Evaluation
 
-The frozen corpus contains 10 term cases, 7 collision cases, 7 triage cases and 8 displayed-output readability rows. All eight failure probes run from production functions. The CLI and drawer use benchmark version 1.1.0.
+The frozen corpus contains 10 term cases, 7 collision cases, 7 triage cases, 26 negation cases, 10 claim-check cases and 8 displayed-output readability rows. All ten failure probes run from production functions. The CLI and drawer use benchmark version 2.0.0.
 
 | Task | Metric | Verified value |
 | --- | --- | --- |
@@ -49,9 +49,25 @@ Readability is measured on the exact paragraph shown in the app, including curat
 
 **Baseline comparison.** The baseline echoes the source note, flags no collision, and always answers `ROUTINE HOME CARE`. Its triage answer matches 3 of 7 labels, giving accuracy and micro-F1 of 0.4286. Term F1 and collision F1 are 0.0000. The measured gains are term F1 +0.9459, collision F1 +1.0000, triage accuracy +0.5714 and triage micro-F1 +0.5714. The baseline performs no benchmark workload; its nominal latency is 0 ms. The measured engine latency above comes from one local run and excludes rendering and clinical review. The benchmark makes zero network requests and has zero API or server cost.
 
+## Wave 2 additions (2026-11-20, benchmark 2.0.0)
+
+| Area | Current implementation |
+| --- | --- |
+| Negation scope | NegEx-style pass: single cues, multi-word phrases (`no history of`, `rules out`, `negative for`), postposed charting (`dyspnea denied`, `was ruled out`, `dyspnea: negative`), conjunction lists, and pseudo-negation guards (`not ruled out`, `cannot rule out`). Scope is capped at ten tokens and stops at sentence ends, colons, semicolons and termination words (`but`, `however`, `yet`). |
+| Claim verification | Each extracted dose, lab value and date is verified against the source by proximity windows bounded at clause edges and neighboring subject anchors, so `Metformin 500 mg, Lisinopril 10 mg` cannot verify `Metformin 10 mg`. Verdicts: `exact-match`, `subject-value-match`, `dosage-mismatch`, `lab-value-mismatch`, `unit-mismatch`, `date-mismatch`, `unsupported`. |
+| Claim-audit UI | Unsupported claims render as red flag badges in the audited text; a panel lists every claim with status, reason, source excerpt and offsets, with an All / Verified / Flagged filter and click-to-jump source spans. A paste-in field audits any user draft the same way. |
+| Audit export | JSON and CSV download of every source span (offsets, negation) plus every claim verdict. |
+| New corpora | 26 labeled negation cases (cues, boundaries, lists, pseudo-negations, affirmed controls) and 10 claim-check cases (clean doses, dose drift, lab drift, wrong drug, date drift, cross-drug borrowing, unit confusion, invented numbers, mixed sets). |
+| New metrics | Negation P / R / F1 / case accuracy; claim catch rate, flag accuracy and false-flag rate. All render in the drawer and the CLI report. |
+
+| Task | Metric | Verified value |
+| --- | --- | --- |
+| Negation flags (26 cases) | Precision / Recall / F1 / case accuracy | 1.0000 / 1.0000 / 1.0000 / 1.0000 |
+| Claim verification (10 cases) | Catch rate / flag accuracy / false-flag rate | 1.0000 / 1.0000 / 0.0000 |
+
 ## Failure conditions and limits
 
-1. Negation is not resolved; token detections require source-note review.
+1. Negation is flagged but not clinically resolved; token detections require source-note review.
 2. Terms outside the 38-entry lexicon remain unsupported and count as misses.
 3. Readability estimates do not measure comprehension, and the English formula is unvalidated for Spanish.
 4. Only four OTC add-ons are screened.
@@ -59,12 +75,14 @@ Readability is measured on the exact paragraph shown in the app, including curat
 6. Triage depends on selected checkboxes and the highest selected tier.
 7. Custom Spanish output uses phrase substitution and requires interpreter confirmation.
 8. Empty input yields zeroed metrics.
+9. Negation cues reach a fixed ten-token window; a cue written farther from the term is missed.
+10. The claim check covers extracted numeric claims only: a claim with no dose, value or date, or one whose subject is misspelled, is not verified.
 
 These scores measure agreement with authored synthetic labels, not clinical accuracy on patient records. The workbench does not replace physician, pharmacist or interpreter review.
 
 ## Reproduce
 
-Run `npm test` for every check, `node scripts/run-evaluation.mjs --check` for regression thresholds and eight live probes, or `npm run eval:json` for the complete report. Syntax checks cover every `.js` and `.mjs` file. No commit or push is part of this verification.
+Run `npm test` for every check, `node scripts/run-evaluation.mjs --check` for regression thresholds and ten live probes, or `npm run eval:json` for the complete report. Syntax checks cover every `.js` and `.mjs` file. No commit or push is part of this verification.
 
 ## Held-out evaluation (added 2026-11-18)
 
@@ -82,4 +100,4 @@ ClinNote finds 40 of 69 terms with no false alarms; the capitals rule finds 39. 
 
 Benefits: caregivers reading a shorthand-heavy note, Spanish-speaking households for the four curated presets, and nurses or pharmacists checking which phrases still need explaining, with the source span shown.
 
-Harms: a reader who trusts the plain text over the clinician (held-out recall is 0.58, so unexplained terms are common), negated phrases that are still explained as present, custom Spanish output that is word substitution, and supplements outside the four-item add-on list that show no collision.
+Harms: a reader who trusts the plain text over the clinician (held-out recall is 0.58, so unexplained terms are common), negated phrases that are still explained as present, a reader who treats the claim check as a guarantee even though it covers extracted numeric claims only, custom Spanish output that is word substitution, and supplements outside the four-item add-on list that show no collision.

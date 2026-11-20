@@ -1490,54 +1490,126 @@ export function buildUiViewState(state) {
   };
 }
 
+/**
+ * Negation detection, NegEx-style, documented so the behavior is testable:
+ * - Single-word cues: no, not, never, none, denies, denied, deny, without,
+ *   negative, absent, absence, lacks.
+ * - Multi-word cues: rule(s)/ruled out, free of, devoid of, clear of,
+ *   negative for, absence of, no/without (any|evidence|history|signs) of,
+ *   denies any.
+ * - Scope window: up to 10 tokens before the term. A cue stops applying at
+ *   any . ! ? ; : boundary, at a termination word (but, however, yet, ...),
+ *   and across a comma unless the comma sits inside an explicit conjunction
+ *   list (and, or, nor, &, /). Verb cues (denies/denied/deny) also scope over
+ *   a bare comma list ("denies fever, chills, dyspnea"); determiner cues
+ *   ("no", "without") do not.
+ * - Pseudo-negations do not fire: "not only", "not rule(d) out", and
+ *   "rule(d) out" preceded by a modal or negator (cannot, could, may, might,
+ *   would, will, should, to, unable, hardly, barely, never, not).
+ * - Postposed cues after the term: denied, denies, ruled out, rules out,
+ *   negative, absent, free, resolved, resolving, with optional chart
+ *   punctuation and auxiliaries ("dyspnea was denied", "dyspnea: negative").
+ *   An intervening "not"/"never" makes the postposed cue pseudo
+ *   ("dyspnea not ruled out" stays affirmed).
+ */
 export const NEGATION_CUES = [
-  'no',
-  'not',
-  'none',
-  'denies',
-  'denied',
-  'without',
-  'negative',
-  'absence',
-  'rules out',
-  'ruled out',
-  'free of',
-  'absent'
+  'no', 'not', 'never', 'none', 'denies', 'denied', 'deny', 'without',
+  'negative', 'absent', 'absence', 'lacks',
+  'rules out', 'rule out', 'ruled out', 'free of', 'devoid of', 'clear of',
+  'negative for', 'absence of', 'no evidence of', 'no history of',
+  'no signs of', 'no sign of', 'without evidence of', 'without any', 'denies any'
 ];
+
+const NEGATION_SINGLE_CUES = new Set([
+  'no', 'not', 'never', 'none', 'denies', 'denied', 'deny', 'without',
+  'negative', 'absent', 'absence', 'lacks'
+]);
+const NEGATION_VERB_CUES = new Set(['denies', 'denied', 'deny']);
+const NEGATION_PHRASE_CUES = new Set([
+  'rule out', 'rules out', 'ruled out',
+  'free of', 'devoid of', 'clear of',
+  'negative for', 'absence of',
+  'no evidence of', 'no history of', 'no signs of', 'no sign of',
+  'without evidence of', 'without any', 'denies any'
+]);
+const NEGATION_TERMINATORS = new Set([
+  'but', 'however', 'yet', 'though', 'although', 'except',
+  'still', 'nevertheless', 'nonetheless'
+]);
+const NEGATION_CONJUNCTIONS = new Set(['and', 'or', 'nor']);
+const RULE_OUT_PRECEDERS = new Set([
+  'not', 'cannot', "can't", 'cant', 'could', "couldn't", 'couldnt', 'can',
+  'may', 'might', 'would', "wouldn't", 'wouldnt', 'will', "won't", 'wont',
+  'should', "shouldn't", 'shouldnt', 'to', 'unable', 'never', 'hardly', 'barely'
+]);
+const POSTPOSED_CUES = /(denied|denies|ruled\s+out|rules?\s+out|negative|absent|free|resolved|resolving)\b/i;
+const POSTPOSED_AUX = new Set([
+  'was', 'were', 'is', 'are', 'been', 'being', 'be', 'remains', 'remain',
+  'remained', 'still', 'now', 'currently', 'felt', 'feels', 'seems', 'seemed',
+  'appears', 'appeared', 'became', 'becomes', 'reported', 'documented',
+  'noted', 'also', 'clinically', 'not', 'never'
+]);
+const NEGATION_PRE_WINDOW_TOKENS = 10;
+
+function negationTokenWord(raw) {
+  return String(raw || '').toLowerCase().replace(/[^a-z']/g, '');
+}
 
 export function isNegatedContext(text, start = 0, length = 0) {
   if (typeof text !== 'string') return false;
   const safeStart = Number.isFinite(start) ? Math.max(0, start) : 0;
   const safeLength = Number.isFinite(length) ? Math.max(0, length) : 0;
   const end = safeStart + safeLength;
-  const before = text.slice(Math.max(0, safeStart - 80), safeStart);
-  const after = text.slice(end, end + 40);
 
-  // Following cue: "dyspnea denied", "chest pain ruled out"
-  if (/^\s*(denied|ruled\s+out|negative|absent)\b/i.test(after)) {
-    return true;
+  // Postposed cues: charting shorthand after the term itself.
+  const after = text.slice(end, Math.min(text.length, end + 56));
+  const postMatch = new RegExp(`^[\\s:;,()\\[\\]\\/\\-]*([a-z' ]*?)${POSTPOSED_CUES.source}`, 'i').exec(after);
+  if (postMatch) {
+    const auxWords = postMatch[1].trim().split(/\s+/).filter(Boolean).map(negationTokenWord).filter(Boolean);
+    const allAux = auxWords.every((w) => POSTPOSED_AUX.has(w));
+    const hasNegator = auxWords.some((w) => w === 'not' || w === 'never');
+    if (allAux && !hasNegator) return true;
   }
 
-  const words = before.toLowerCase().split(/\s+/).filter(Boolean);
-  const tail = words.slice(-6);
-  for (let i = 0; i < tail.length; i += 1) {
-    const w = tail[i].replace(/[^a-z]/g, '');
-    if (NEGATION_CUES.includes(w)) {
-      // ensure cue is not separated by a strong clause boundary in between
-      const between = tail.slice(i + 1).join(' ');
-      if (!/[.;:!?]/.test(between)) return true;
+  // Pre-cue scan, right to left over the last N tokens.
+  const before = text.slice(Math.max(0, safeStart - 160), safeStart);
+  const tokens = before.split(/\s+/).filter(Boolean).slice(-NEGATION_PRE_WINDOW_TOKENS);
+  let listOk = false;
+  let commaBlocked = false;
+  for (let i = tokens.length - 1; i >= 0; i -= 1) {
+    const raw = tokens[i];
+    if (/[.!?;:]/.test(raw)) break;
+    const w = negationTokenWord(raw);
+    if (w === '') continue;
+    if (NEGATION_CONJUNCTIONS.has(w) || raw === '/' || raw === '&') {
+      listOk = true;
+      continue;
     }
-    // two-word cue "rules out" / "ruled out" / "negative for"
-    if (i < tail.length - 1) {
-      const pair = `${tail[i]} ${tail[i + 1]}`.replace(/[^a-z ]/g, '');
-      if (pair === 'rules out' || pair === 'ruled out' || pair === 'negative for' || pair === 'free of') {
-        return true;
+    if (NEGATION_TERMINATORS.has(w)) break;
+
+    const nextW = i + 1 < tokens.length ? negationTokenWord(tokens[i + 1]) : '';
+    const next2W = i + 2 < tokens.length ? negationTokenWord(tokens[i + 2]) : '';
+    const prevW = i - 1 >= 0 ? negationTokenWord(tokens[i - 1]) : '';
+    const pair = `${w} ${nextW}`;
+    const tri = `${pair} ${next2W}`;
+
+    let cueFound = false;
+    if (NEGATION_PHRASE_CUES.has(tri) || NEGATION_PHRASE_CUES.has(pair) || NEGATION_SINGLE_CUES.has(w)) {
+      cueFound = true;
+      if (w === 'not' && (nextW === 'only' || nextW === 'certain' || nextW === 'sure' || nextW === 'clear' || /^ruled?\b/.test(nextW))) {
+        cueFound = false;
+      }
+      if (cueFound && /^rule/.test(w) && RULE_OUT_PRECEDERS.has(prevW)) {
+        cueFound = false;
       }
     }
-  }
-  // "no known allergies" style: cue + adjective before term
-  if (/\b(no|not|denies|without)\b[^.?!;]{0,40}$/i.test(before)) {
-    return true;
+
+    if (cueFound) {
+      if (commaBlocked && !listOk && !NEGATION_VERB_CUES.has(w)) break;
+      return true;
+    }
+
+    if (raw.includes(',') && !listOk) commaBlocked = true;
   }
   return false;
 }
@@ -1552,14 +1624,18 @@ export function hasNegation(text) {
 }
 
 // --- Dosage / unit handling ---
-const DOSAGE_REGEX = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|ml|units?|IU|mmol|meq|mEq|%|puffs?|tablets?)\b/gi;
+const DOSAGE_REGEX = /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|ml|units?|IU|mmol|meq|mEq|%|puffs?|tablets?|mL\/min\/1\.73m2|mEq\/L|mmHg|mIU\/L|g\/dL|K\/uL|breaths\/min|mg\/dL)\b/gi;
+
+function parseDosageNumber(raw) {
+  return Number(String(raw).replace(/,/g, ''));
+}
 
 export function parseDosages(text) {
   if (typeof text !== 'string') return [];
   const out = [];
   let m = DOSAGE_REGEX.exec(text);
   while (m !== null) {
-    out.push({ value: Number(m[1]), unit: m[2], raw: m[0], index: m.index });
+    out.push({ value: parseDosageNumber(m[1]), unit: m[2], raw: m[0], index: m.index });
     if (m[0].length === 0) DOSAGE_REGEX.lastIndex += 1;
     m = DOSAGE_REGEX.exec(text);
   }
@@ -1600,50 +1676,350 @@ export function detectDosageMismatches(sourceText, claimedText) {
 }
 
 // --- Claim verification ---
+const CLAIM_DOSE_REGEX = /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|ml|units?|IU|mmol|meq|mEq|%|mL\/min\/1\.73m2|mEq\/L|mmHg|mIU\/L|g\/dL|K\/uL|breaths\/min|mg\/dL)\b/gi;
+const CLAIM_MED_REGEX = /\b([A-Z][a-zA-Z]{2,})\s+(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|units?|IU)\b/g;
+const CLAIM_LAB_MARKERS = 'eGFR|HbA1c|A1c|SpO2|O2\\s*sat|K\\+|potassium|BP|TSH|glucose|creatinine|INR|platelets|WBC|hemoglobin|Hgb|RR|HR|temperature|temp';
+const CLAIM_LAB_REGEX = new RegExp(`\\b(${CLAIM_LAB_MARKERS})\\b[^\\d.!?\\n]{0,24}(\\d+(?:\\.\\d+)?)\\s*(%|mL/min/1\\.73m2|mEq/L|mmol/L|mmHg|mIU/L|g/dL|K/uL|breaths/min|mg/dL)?`, 'gi');
+const CLAIM_DATE_REGEX = /\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})\b|\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/gi;
+
+const MONTH_INDEX = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+};
+
+/** Canonicalize a written date to yyyymmdd digits when the format is known. */
+export function canonicalDateString(raw) {
+  const s = String(raw || '').trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return `${m[1]}${m[2]}${m[3]}`;
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(s);
+  if (m) {
+    const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+    return `${year}${m[1].padStart(2, '0')}${m[2].padStart(2, '0')}`;
+  }
+  m = /^([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,\s*(\d{4}))?$/.exec(s);
+  if (m && MONTH_INDEX[m[1].slice(0, 3).toLowerCase()]) {
+    return `${m[3] || '0000'}${String(MONTH_INDEX[m[1].slice(0, 3).toLowerCase()]).padStart(2, '0')}${m[2].padStart(2, '0')}`;
+  }
+  m = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(s);
+  if (m && MONTH_INDEX[m[2].slice(0, 3).toLowerCase()]) {
+    return `${m[3]}${String(MONTH_INDEX[m[2].slice(0, 3).toLowerCase()]).padStart(2, '0')}${m[1].padStart(2, '0')}`;
+  }
+  return null;
+}
+
+export function extractDateStrings(text) {
+  if (typeof text !== 'string') return [];
+  const out = [];
+  let m = CLAIM_DATE_REGEX.exec(text);
+  while (m !== null) {
+    out.push(m[0]);
+    if (m[0].length === 0) CLAIM_DATE_REGEX.lastIndex += 1;
+    m = CLAIM_DATE_REGEX.exec(text);
+  }
+  CLAIM_DATE_REGEX.lastIndex = 0;
+  return out;
+}
+
+/**
+ * Extract checkable claims from generated text: medication+dose, lab marker+value,
+ * standalone dosages, and dates. Claims are positions in the generated text, so
+ * each can be highlighted and independently verified against the source note.
+ */
 export function extractClaims(text) {
   if (typeof text !== 'string' || text.trim().length === 0) return [];
   const claims = [];
-  // Medication-like claims: drug + dose
-  const medRegex = /\b([A-Z][a-zA-Z]{2,})\s+(\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|units?|IU)\b/g;
-  let m = medRegex.exec(text);
+  const covered = [];
+
+  let m = CLAIM_MED_REGEX.exec(text);
   while (m !== null) {
-    claims.push({ type: 'medication', subject: m[1], value: Number(m[2]), unit: m[3], raw: m[0], index: m.index });
-    if (m[0].length === 0) medRegex.lastIndex += 1;
-    m = medRegex.exec(text);
+    claims.push({ type: 'medication', subject: m[1], value: parseDosageNumber(m[2]), unit: m[3], raw: m[0], index: m.index });
+    covered.push([m.index, m.index + m[0].length]);
+    if (m[0].length === 0) CLAIM_MED_REGEX.lastIndex += 1;
+    m = CLAIM_MED_REGEX.exec(text);
   }
-  // Lab-like claims: marker value
-  const labRegex = /\b(eGFR|HbA1c|SpO2|K\+|BP|TSH|potassium|hemoglobin)\s*[: ]\s*(\d+(?:\.\d+)?)\s*(%|mL\/min\/1\.73m2|mEq\/L|mmHg|mIU\/L|g\/dL)?/gi;
-  let l = labRegex.exec(text);
+  CLAIM_MED_REGEX.lastIndex = 0;
+
+  let l = CLAIM_LAB_REGEX.exec(text);
   while (l !== null) {
     claims.push({ type: 'lab', subject: l[1], value: Number(l[2]), unit: l[3] || '', raw: l[0], index: l.index });
-    if (l[0].length === 0) labRegex.lastIndex += 1;
-    l = labRegex.exec(text);
+    covered.push([l.index, l.index + l[0].length]);
+    if (l[0].length === 0) CLAIM_LAB_REGEX.lastIndex += 1;
+    l = CLAIM_LAB_REGEX.exec(text);
   }
+  CLAIM_LAB_REGEX.lastIndex = 0;
+
+  let d = CLAIM_DATE_REGEX.exec(text);
+  while (d !== null) {
+    claims.push({ type: 'date', subject: 'date', value: null, unit: '', raw: d[0], index: d.index });
+    covered.push([d.index, d.index + d[0].length]);
+    if (d[0].length === 0) CLAIM_DATE_REGEX.lastIndex += 1;
+    d = CLAIM_DATE_REGEX.exec(text);
+  }
+  CLAIM_DATE_REGEX.lastIndex = 0;
+
+  let g = CLAIM_DOSE_REGEX.exec(text);
+  while (g !== null) {
+    const inside = covered.some(([s, e]) => g.index >= s && g.index < e);
+    if (!inside) {
+      claims.push({ type: 'dosage', subject: null, value: parseDosageNumber(g[1]), unit: g[2], raw: g[0], index: g.index });
+    }
+    if (g[0].length === 0) CLAIM_DOSE_REGEX.lastIndex += 1;
+    g = CLAIM_DOSE_REGEX.exec(text);
+  }
+  CLAIM_DOSE_REGEX.lastIndex = 0;
+
+  claims.sort((a, b) => a.index - b.index);
   return claims;
 }
 
+const LAB_SUBJECT_ALIASES = {
+  a1c: ['a1c', 'hba1c', 'hemoglobin a1c'],
+  hba1c: ['hba1c', 'a1c', 'hemoglobin a1c'],
+  hemoglobina1c: ['hba1c', 'a1c', 'hemoglobin a1c'],
+  spo2: ['spo2', 'o2 sat', 'oxygen saturation', 'pulse ox'],
+  o2sat: ['o2 sat', 'spo2', 'oxygen saturation'],
+  potassium: ['potassium', 'k+', 'serum k', 'serum potassium'],
+  'k+': ['k+', 'potassium', 'serum k'],
+  k: ['k+', 'potassium'],
+  bp: ['bp', 'blood pressure'],
+  bloodpressure: ['bp', 'blood pressure'],
+  tsh: ['tsh', 'thyroid stimulating hormone'],
+  egfr: ['egfr', 'kidney filtration score', 'kidney score'],
+  glucose: ['glucose', 'blood sugar', 'fingerstick glucose'],
+  creatinine: ['creatinine'],
+  inr: ['inr'],
+  hemoglobin: ['hemoglobin', 'hgb'],
+  hgb: ['hgb', 'hemoglobin'],
+  platelets: ['platelets', 'plt'],
+  wbc: ['wbc', 'white blood cell'],
+  rr: ['rr', 'respiratory rate'],
+  hr: ['hr', 'heart rate'],
+  temp: ['temp', 'temperature'],
+  temperature: ['temperature', 'temp']
+};
+
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function subjectSearchForms(subject) {
+  const norm = String(subject || '').toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const alias = LAB_SUBJECT_ALIASES[norm];
+  if (alias) return alias;
+  return [String(subject || '').toLowerCase()];
+}
+
+function subjectOccurrenceRegex(form) {
+  const escaped = escapeRegExp(form).replace(/\s+/g, '\\s+');
+  const tail = /[a-z0-9]$/i.test(form) ? '\\b' : '';
+  return new RegExp(`\\b${escaped}${tail}`, 'gi');
+}
+
+const UNIT_NORMALIZATION = {
+  'µg': 'mcg', 'ug': 'mcg', 'gm': 'g', 'mgs': 'mg', 'cc': 'ml', 'ml': 'mL'
+};
+
+function unitsEquivalent(a, b) {
+  const norm = (u) => UNIT_NORMALIZATION[String(u || '').toLowerCase()] || String(u || '').toLowerCase();
+  return norm(a) === norm(b);
+}
+
+const CLAIM_WINDOW_AFTER = 72;
+const CLAIM_WINDOW_BEFORE = 28;
+const ALL_LAB_FORMS = [...new Set(Object.values(LAB_SUBJECT_ALIASES).flat())];
+const MED_ANCHOR_REGEX = /\b[A-Z][a-zA-Z]{2,}(?=\s+\d)/g;
+
+/**
+ * Every subject-like anchor in a source: lab markers (any alias form) and
+ * Capitalized drug-style names that sit in front of a number. Used to bound
+ * claim-verification windows so a value written next to a neighboring subject
+ * can never corroborate this one.
+ */
+function subjectAnchorsIn(src, exclude) {
+  const anchors = [];
+  for (const form of ALL_LAB_FORMS) {
+    const re = subjectOccurrenceRegex(form);
+    let m = re.exec(src);
+    while (m !== null) {
+      anchors.push({ start: m.index, end: m.index + m[0].length });
+      if (m[0].length === 0) re.lastIndex += 1;
+      m = re.exec(src);
+    }
+  }
+  MED_ANCHOR_REGEX.lastIndex = 0;
+  let m = MED_ANCHOR_REGEX.exec(src);
+  while (m !== null) {
+    anchors.push({ start: m.index, end: m.index + m[0].length });
+    m = MED_ANCHOR_REGEX.exec(src);
+  }
+  anchors.sort((a, b) => a.start - b.start);
+  return exclude ? anchors.filter((a) => a.end <= exclude.start || a.start >= exclude.end) : anchors;
+}
+const CLAIM_VALUE_TOKEN = /^[±]?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(%|mg|mcg|g|mL|ml|units?|IU|mmol|meq|mEq|mL\/min\/1\.73m2|mEq\/L|mmol\/L|mmHg|mIU\/L|g\/dL|K\/uL|breaths\/min|mg\/dL|uL)?[,;:.\)]*$/i;
+const CLAIM_LOOSE_UNIT = /^(mL\/min\/1\.73m2|mEq\/L|mmol\/L|breaths\/min|mg\/dL|g\/dL|K\/uL|mIU\/L|mmHg|mmol|mEq|meq|mcg|mg|g|mL|ml|units?|IU|%|uL)\b/i;
+
+/** A '.' inside a decimal number is not a clause boundary; other . ! ? ; : are. */
+function isClaimBoundary(text, i) {
+  const ch = text[i];
+  if ('!?;:'.includes(ch)) return true;
+  if (ch === '.') {
+    return !(i > 0 && i + 1 < text.length && /[0-9]/.test(text[i - 1]) && /[0-9]/.test(text[i + 1]));
+  }
+  return false;
+}
+
+/** Numeric tokens inside a text window, with positions and optional units. */
+function numbersInWindow(windowText, offsetBase) {
+  const out = [];
+  const tokenRegex = /\S+/g;
+  let t = tokenRegex.exec(windowText);
+  while (t !== null) {
+    const token = t[0].replace(/^[(\["']+/, '');
+    const m = CLAIM_VALUE_TOKEN.exec(token);
+    if (m) {
+      let unit = m[2] || '';
+      if (!unit) {
+        const rest = windowText.slice(t.index + t[0].length);
+        const lead = /^\s*(\S+)/.exec(rest);
+        if (lead) {
+          const bare = lead[1].replace(/[,;:.\)\]]+$/, '');
+          if (CLAIM_LOOSE_UNIT.test(bare)) unit = bare;
+        }
+      }
+      out.push({ value: parseDosageNumber(m[1]), unit, start: offsetBase + t.index, end: offsetBase + t.index + token.length });
+    }
+    if (t[0].length === 0) tokenRegex.lastIndex += 1;
+    t = tokenRegex.exec(windowText);
+  }
+  return out;
+}
+
+/**
+ * Verify one claim against the source note. A claim is supported when its exact
+ * text appears, or when its subject appears with the claimed value (and unit)
+ * inside the same clause region. Subject present but a different value on site
+ * is a mismatch, not a vague subject match; subject absent is unsupported.
+ */
 export function verifyClaim(claim, sourceText) {
   const src = typeof sourceText === 'string' ? sourceText : '';
   if (!claim || typeof claim.raw !== 'string') {
     return { supported: false, reason: 'invalid-claim', spans: [] };
   }
-  const spans = locateJargonSpans(src);
-  const needle = claim.raw.toLowerCase();
-  const idx = src.toLowerCase().indexOf(needle);
+  const idx = src.toLowerCase().indexOf(claim.raw.toLowerCase());
   if (idx !== -1) {
     return { supported: true, reason: 'exact-match', spans: [{ start: idx, end: idx + claim.raw.length }] };
   }
-  // Check dosage presence
-  if (claim.value !== undefined) {
-    const doses = parseDosages(src);
-    const match = doses.some((d) => d.value === claim.value && d.unit.toLowerCase() === String(claim.unit).toLowerCase());
-    if (!match) {
-      return { supported: false, reason: 'dosage-mismatch', spans: [] };
+
+  if (claim.type === 'date') {
+    const canon = canonicalDateString(claim.raw);
+    const srcDates = extractDateStrings(src);
+    if (canon !== null) {
+      const canonSource = srcDates.map(canonicalDateString);
+      if (canonSource.includes(canon)) {
+        const hit = src.toLowerCase().indexOf(claim.raw.toLowerCase());
+        return { supported: true, reason: 'date-match', spans: hit === -1 ? [] : [{ start: hit, end: hit + claim.raw.length }] };
+      }
+      return { supported: false, reason: 'date-mismatch', spans: [], found: srcDates };
     }
+    return { supported: false, reason: 'date-mismatch', spans: [], found: srcDates };
   }
-  // subject presence
-  if (claim.subject && src.toLowerCase().includes(String(claim.subject).toLowerCase())) {
-    return { supported: true, reason: 'subject-match', spans: [] };
+
+  if (claim.subject) {
+    const forms = subjectSearchForms(claim.subject);
+    const occurrences = [];
+    for (const form of forms) {
+      const re = subjectOccurrenceRegex(form);
+      let m = re.exec(src);
+      while (m !== null) {
+        occurrences.push({ start: m.index, end: m.index + m[0].length });
+        if (m[0].length === 0) re.lastIndex += 1;
+        m = re.exec(src);
+      }
+    }
+    occurrences.sort((a, b) => a.start - b.start);
+    if (occurrences.length === 0) {
+      return { supported: false, reason: 'unsupported', spans: [] };
+    }
+    if (claim.value === undefined || claim.value === null || Number.isNaN(claim.value)) {
+      return { supported: true, reason: 'subject-match', spans: occurrences };
+    }
+    const near = [];
+    const windows = occurrences.map((occ) => {
+      const wStart = Math.max(0, occ.start - CLAIM_WINDOW_BEFORE);
+      const wEnd = Math.min(src.length, occ.end + CLAIM_WINDOW_AFTER);
+      const beforeSlice = src.slice(wStart, occ.start);
+      let lastBoundary = -1;
+      for (let i = 0; i < beforeSlice.length; i += 1) {
+        if (isClaimBoundary(beforeSlice, i)) lastBoundary = i;
+      }
+      const backStart = wStart + lastBoundary + 1;
+      const afterSlice = src.slice(occ.end, wEnd);
+      let fwdEnd = afterSlice.length;
+      for (let i = 0; i < afterSlice.length; i += 1) {
+        if (isClaimBoundary(afterSlice, i)) { fwdEnd = i; break; }
+      }
+      // A value parked next to a different subject belongs to that subject:
+      // the window stops at the nearest other anchor on each side.
+      const anchors = subjectAnchorsIn(src, occ);
+      let backLimit = occ.start;
+      for (const a of anchors) {
+        if (a.start >= backStart && a.start < occ.start) { backLimit = a.start; break; }
+      }
+      let fwdLimit = occ.end + fwdEnd;
+      for (const a of anchors) {
+        if (a.start >= occ.end && a.start < fwdLimit) { fwdLimit = a.start; break; }
+      }
+      const base = backStart;
+      const windowText = src.slice(backStart, backLimit) + src.slice(occ.start, occ.end) + src.slice(occ.end, fwdLimit);
+      const occRange = [occ.start - base, occ.end - base];
+      return { base, windowText, occ, occRange };
+    });
+    let unitConflict = null;
+    for (const w of windows) {
+      const nums = numbersInWindow(w.windowText, w.base).filter((n) => !(n.start >= w.occ.start && n.end <= w.occ.end));
+      for (const n of nums) near.push(n);
+      const hit = nums.find((n) => n.value === claim.value);
+      if (hit) {
+        if (claim.unit && hit.unit && !unitsEquivalent(hit.unit, claim.unit)) {
+          unitConflict = { claimedUnit: claim.unit, foundUnit: hit.unit, span: hit };
+          continue;
+        }
+        if (claim.unit && !hit.unit) {
+          // a bare number near the subject still corroborates the claim
+        }
+        const start = Math.min(w.occ.start, hit.start);
+        const end = Math.max(w.occ.end, hit.end);
+        return { supported: true, reason: 'subject-value-match', spans: [{ start, end }] };
+      }
+    }
+    if (unitConflict) {
+      return {
+        supported: false,
+        reason: 'unit-mismatch',
+        spans: occurrences,
+        found: [...new Set(near.map((n) => n.value))].slice(0, 6),
+        detail: unitConflict
+      };
+    }
+    const reason = claim.type === 'lab' ? 'lab-value-mismatch' : 'dosage-mismatch';
+    return {
+      supported: false,
+      reason,
+      spans: occurrences,
+      found: [...new Set(near.map((n) => n.value))].slice(0, 6)
+    };
+  }
+
+  if (claim.value !== undefined && claim.value !== null) {
+    const doses = parseDosages(src);
+    const match = doses.some((d) => d.value === claim.value && unitsEquivalent(d.unit, claim.unit));
+    if (!match) {
+      const sameUnit = doses.filter((d) => unitsEquivalent(d.unit, claim.unit)).map((d) => d.value);
+      return { supported: false, reason: 'dosage-mismatch', spans: [], found: [...new Set(sameUnit)].slice(0, 6) };
+    }
+    const hit = doses.find((d) => d.value === claim.value && unitsEquivalent(d.unit, claim.unit));
+    return { supported: true, reason: 'dosage-match', spans: [{ start: hit.index, end: hit.index + hit.raw.length }] };
   }
   return { supported: false, reason: 'unsupported', spans: [] };
 }
@@ -1662,6 +2038,21 @@ export function verifyClaims(claims, sourceText) {
   };
 }
 
+/**
+ * Verify every checkable claim inside generated text against the source note.
+ * Adds the generated-text span of each claim so the UI can highlight it.
+ */
+export function verifyGeneratedText(sourceText, generatedText) {
+  const claims = extractClaims(generatedText);
+  const report = verifyClaims(claims, sourceText);
+  const results = report.results.map((r) => ({
+    ...r,
+    claimStart: r.claim.index,
+    claimEnd: r.claim.index + r.claim.raw.length
+  }));
+  return { ...report, results };
+}
+
 export function verifyClaimAgainstSource(claim, sourceText) {
   return verifyClaim(claim, sourceText);
 }
@@ -1674,6 +2065,7 @@ export function verifyClaimsAgainstSource(claims, sourceText) {
 export function buildAuditTrail(viewState) {
   const vs = viewState || {};
   const source = typeof vs.rawClinicalNote === 'string' ? vs.rawClinicalNote : '';
+  const generated = typeof vs.plainPatientParagraph === 'string' ? vs.plainPatientParagraph : '';
   const spans = Array.isArray(vs.sourceSpans) ? vs.sourceSpans : locateJargonSpans(source);
   const entries = spans.map((s, i) => ({
     index: i + 1,
@@ -1684,7 +2076,9 @@ export function buildAuditTrail(viewState) {
     start: s.start,
     end: s.end,
     negated: s.negated === true,
-    verified: true
+    verified: true,
+    status: 'source-span',
+    reason: ''
   }));
   // Add dosage entries
   for (const d of parseDosages(source)) {
@@ -1697,8 +2091,30 @@ export function buildAuditTrail(viewState) {
       start: d.index,
       end: d.index + d.raw.length,
       negated: false,
-      verified: true
+      verified: true,
+      status: 'source-dose',
+      reason: ''
     });
+  }
+  // Add claim-check entries: every extracted claim in the shown output,
+  // flagged when the source does not support it.
+  if (generated) {
+    const check = verifyGeneratedText(source, generated);
+    for (const r of check.results) {
+      entries.push({
+        index: entries.length + 1,
+        term: 'claim',
+        id: `claim-${r.claim.type || 'generic'}`,
+        category: 'claim-check',
+        surface: r.claim.raw,
+        start: r.claimStart,
+        end: r.claimEnd,
+        negated: false,
+        verified: r.supported === true,
+        status: r.supported ? 'verified' : 'flagged',
+        reason: r.supported ? '' : r.reason
+      });
+    }
   }
   return entries;
 }
@@ -1706,8 +2122,8 @@ export function buildAuditTrail(viewState) {
 export function exportAuditTrail(entries, format = 'json') {
   const list = Array.isArray(entries) ? entries : [];
   if (format === 'csv') {
-    const header = 'index,term,id,category,surface,start,end,negated,verified';
-    const rows = list.map((e) => `${e.index},"${String(e.term).replace(/"/g, '""')}","${String(e.id).replace(/"/g, '""')}","${String(e.category).replace(/"/g, '""')}","${String(e.surface).replace(/"/g, '""')}",${e.start},${e.end},${e.negated},${e.verified}`);
+    const header = 'index,term,id,category,surface,start,end,negated,verified,status,reason';
+    const rows = list.map((e) => `${e.index},"${String(e.term).replace(/"/g, '""')}","${String(e.id).replace(/"/g, '""')}","${String(e.category).replace(/"/g, '""')}","${String(e.surface).replace(/"/g, '""')}",${e.start},${e.end},${e.negated},${e.verified},"${String(e.status || '').replace(/"/g, '""')}","${String(e.reason || '').replace(/"/g, '""')}"`);
     return [header, ...rows].join('\n');
   }
   return JSON.stringify(list, null, 2);

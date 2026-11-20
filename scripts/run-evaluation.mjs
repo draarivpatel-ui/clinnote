@@ -23,6 +23,10 @@ if (args.has('--check')) {
     ['termDetectionF1', m.termDetectionF1, 0.9],
     ['collisionF1', m.collisionF1, 0.95],
     ['triageAccuracy', m.triageAccuracy, 0.95],
+    ['negationF1', m.negationF1, 0.9],
+    ['negationAccuracy', m.negationAccuracy, 0.9],
+    ['claimCatchRate', m.claimCatchRate, 0.95],
+    ['claimFlagAccuracy', m.claimFlagAccuracy, 0.9],
     ['combinedBrier', 1 - m.combinedBrier, 0.9]
   ];
   const failures = thresholds.filter(([, value, min]) => value < min);

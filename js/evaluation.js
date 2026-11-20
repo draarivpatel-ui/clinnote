@@ -25,13 +25,16 @@ import {
   buildUiViewState,
   detectJargonMatches,
   locateJargonSpans,
+  isNegatedContext,
   dejargonizeClinicalText,
   buildMedicationScheduleAndCollisions,
-  evaluateSymptomTriage
+  evaluateSymptomTriage,
+  verifyGeneratedText,
+  verifyClaim
 } from './clinnote-engine.js';
 
-export const EVAL_VERSION = '1.1.0';
-export const EVAL_DATE = '2026-11-15';
+export const EVAL_VERSION = '2.0.0';
+export const EVAL_DATE = '2026-11-19';
 
 /**
  * Frozen ground-truth cases. `expectedTerms` uses lexicon IDs. Every case is a
@@ -224,18 +227,135 @@ export const GROUND_TRUTH_TRIAGE = [
 ];
 
 /**
+ * Labeled negation cases (added for engine v2.0.0). Each case lists which
+ * lexicon term IDs must be flagged as negated and which must stay affirmed.
+ * The set covers single-word cues, multi-word cues, postposed charting
+ * shorthand, conjunction lists, and the boundary cases where a naive cue
+ * scan would bleed into the wrong clause.
+ */
+export const GROUND_TRUTH_NEGATION = [
+  { id: 'neg-no', label: 'Single-word no cue', text: 'No dyspnea observed.', negated: ['dyspnea'] },
+  { id: 'neg-no-history', label: 'Multi-word no history of', text: 'No history of dyspnea or orthostatic hypotension.', negated: ['dyspnea', 'orthostatic-hypotension'] },
+  { id: 'neg-rules-out', label: 'Rules out cue', text: 'Workup rules out dyspnea.', negated: ['dyspnea'] },
+  { id: 'neg-ruled-out', label: 'Ruled out cue', text: 'Examination ruled out bronchospasm.', negated: ['bronchospasm'] },
+  { id: 'neg-negative-for', label: 'Negative for cue', text: 'Labs negative for hypoglycemia.', negated: ['hypoglycemia'] },
+  { id: 'neg-free-of', label: 'Free of cue', text: 'Patient now free of dyspnea.', negated: ['dyspnea'] },
+  { id: 'neg-without', label: 'Without cue', text: 'Discharged without dyspnea.', negated: ['dyspnea'] },
+  { id: 'neg-denies-any', label: 'Denies any cue', text: 'Denies any dyspnea or hemoptysis.', negated: ['dyspnea', 'hemoptysis'] },
+  { id: 'neg-trailing-denied', label: 'Trailing denied', text: 'Resting comfortably; dyspnea denied.', negated: ['dyspnea'] },
+  { id: 'neg-was-denied', label: 'Auxiliary before denied', text: 'Dyspnea was denied on exam.', negated: ['dyspnea'] },
+  { id: 'neg-colon-negative', label: 'Charting colon then negative', text: 'Respiratory exam: dyspnea: negative.', negated: ['dyspnea'] },
+  { id: 'neg-was-ruled-out', label: 'Auxiliary before ruled out', text: 'Dyspnea was ruled out by imaging.', negated: ['dyspnea'] },
+  { id: 'neg-resolved', label: 'Resolved marks absence now', text: 'Dyspnea resolved overnight.', negated: ['dyspnea'] },
+  { id: 'neg-list-or', label: 'Comma list joined by or stays negated', text: 'No fever, chills, or dyspnea.', negated: ['dyspnea'] },
+  { id: 'neg-verb-list', label: 'Denies scopes a comma object list', text: 'Patient denies melena, hemoptysis, dyspnea.', negated: ['melena', 'hemoptysis', 'dyspnea'] },
+  { id: 'neg-absence', label: 'Absence of cue', text: 'Noted absence of syncope.', negated: ['syncope'] },
+  { id: 'neg-boundary-sentence', label: 'Cue sealed in a prior sentence', text: 'Culture negative for hypoglycemia. Dyspnea present.', negated: ['hypoglycemia'], affirmed: ['dyspnea'] },
+  { id: 'neg-boundary-colon', label: 'Cue sealed before a colon', text: 'Answer: no. Dyspnea persists.', negated: [], affirmed: ['dyspnea'] },
+  { id: 'neg-boundary-comma', label: 'Bare comma ends determiner scope', text: 'He has no fever, dyspnea is worsening.', negated: [], affirmed: ['dyspnea'] },
+  { id: 'neg-terminator-but', label: 'But terminates the cue', text: 'No fever but dyspnea persists.', negated: [], affirmed: ['dyspnea'] },
+  { id: 'neg-pseudo-ruled', label: 'Not ruled out is not a denial', text: 'Dyspnea not ruled out; workup continues.', negated: [], affirmed: ['dyspnea'] },
+  { id: 'neg-pseudo-cannot', label: 'Cannot rule out is not a denial', text: 'We cannot rule out dyspnea.', negated: [], affirmed: ['dyspnea'] },
+  { id: 'neg-pseudo-unable', label: 'Unable to rule out is not a denial', text: 'Unable to rule out orthostatic hypotension.', negated: [], affirmed: ['orthostatic-hypotension'] },
+  { id: 'neg-affirmed-monitor', label: 'Watch and monitor are not cues', text: 'Monitor for dyspnea and melena.', negated: [], affirmed: ['dyspnea', 'melena'] },
+  { id: 'neg-affirmed-return', label: 'Return precautions are affirmed', text: 'Return to the ED for dyspnea or hemoptysis.', negated: [], affirmed: ['dyspnea', 'hemoptysis'] },
+  { id: 'neg-mixed', label: 'Denial then a fresh affirmed clause', text: 'Patient denies hemoptysis. Dyspnea noted on stairs.', negated: ['hemoptysis'], affirmed: ['dyspnea'] }
+];
+
+/**
+ * Labeled claim-check cases (added for engine v2.0.0). `generated` is the kind
+ * of patient-facing text the de-jargonizer produces; `expectedFlagged` is how
+ * many extracted claims the check must fail to support against `source`.
+ * Plants cover dose drift, lab drift, unit confusion, invented drugs, invented
+ * numbers, and date drift.
+ */
+export const GROUND_TRUTH_CLAIM_CHECKS = [
+  {
+    id: 'cc-clean-med',
+    label: 'Single claim fully backed by the source',
+    source: 'Apixaban 2.5 mg PO BID q12h.',
+    generated: 'Take Apixaban 2.5 mg twice a day.',
+    expectedFlagged: 0
+  },
+  {
+    id: 'cc-dose-drift',
+    label: 'Medication dose value drift',
+    source: 'Metformin ER 500 mg PO BID.',
+    generated: 'Take Metformin 850 mg twice daily.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-lab-drift',
+    label: 'Lab value drift (A1c 8.6 vs 7.8)',
+    source: 'HbA1c 7.8%, eGFR 52.',
+    generated: 'Your A1c is 8.6% and your kidney score is on file.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-wrong-drug',
+    label: 'Drug named in output is absent from source',
+    source: 'Apixaban 2.5 mg PO BID.',
+    generated: 'Take Warfarin 5 mg daily.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-date-drift',
+    label: 'Follow-up date drift',
+    source: 'Follow-up visit on 2026-11-18.',
+    generated: 'Follow-up visit on 2026-11-28.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-date-match',
+    label: 'Follow-up date carried through exactly',
+    source: 'Return visit on 2026-11-18.',
+    generated: 'Return visit on 2026-11-18.',
+    expectedFlagged: 0
+  },
+  {
+    id: 'cc-cross-drug',
+    label: 'Dose borrowed from a different drug on the list',
+    source: 'Metformin 500 mg PO BID. Lisinopril 10 mg PO QD.',
+    generated: 'Take Metformin 10 mg and Lisinopril 10 mg.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-unit-confusion',
+    label: 'Milligram written where the source says microgram',
+    source: 'Levothyroxine 75 mcg PO QAM.',
+    generated: 'Take Levothyroxine 75 mg every morning.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-number-invented',
+    label: 'Dose invented with no source value at all',
+    source: 'Monitor RR and work of breathing.',
+    generated: 'Give 90 mcg every 6 hours.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc-multi-mixed',
+    label: 'Two supported claims and one planted drift',
+    source: 'Albuterol 90 mcg MDI 2 puffs q4h. Prednisone 20 mg PO QD.',
+    generated: 'Use Albuterol 90 mcg and take Prednisone 40 mg daily.',
+    expectedFlagged: 1
+  }
+];
+
+/**
  * Documented, testable failure conditions. Each has a deterministic probe that the
  * suite actually runs, so the UI shows whether the guard currently holds or fails.
  */
 export const FAILURE_CONDITIONS = [
   {
     id: 'fail-negation',
-    title: 'Negation is not resolved',
-    detail: 'The token matcher flags terms inside negated phrases such as "No dyspnea observed". It reports the token as present rather than judging clinical meaning.',
-    mitigation: 'Detections are now marked as negated in source spans and the audit trail, but the UI still labels them as terms detected, never as diagnoses. A clinician must read the source note.',
+    title: 'Negation is flagged but not clinically resolved',
+    detail: 'Negated terms are detected and marked negated with cue, boundary and pseudo-negation rules (26 labeled cases), but the term is still reported as present in the note rather than judged for clinical meaning.',
+    mitigation: 'Negated spans are struck through in the source note, flagged in the audit trail, and scored in the benchmark. The UI still labels them as terms detected, never as diagnoses. A clinician must read the source note.',
     probe: () => {
-      const r = detectJargonMatches('No dyspnea observed.', 'en');
-      return { triggered: r.some((m) => m.id === 'dyspnea'), observed: r.map((m) => m.id) };
+      const spans = locateJargonSpans('No dyspnea observed.', 'en');
+      const dyspnea = spans.find((s) => s.id === 'dyspnea');
+      return { triggered: Boolean(dyspnea) && dyspnea.negated === true, observed: spans.map((s) => ({ id: s.id, negated: s.negated })) };
     },
     expectedTriggered: true
   },
@@ -321,6 +441,30 @@ export const FAILURE_CONDITIONS = [
     probe: () => {
       const r = dejargonizeClinicalText('   ', 'en');
       return { triggered: r.gradeAfter === 0 && r.jargonCountBefore === 0, observed: [r.gradeAfter] };
+    },
+    expectedTriggered: true
+  },
+  {
+    id: 'fail-negation-window',
+    title: 'Negation cues reach a fixed ten-token window',
+    detail: 'The cue scan looks at most ten tokens back from a term. A negation placed farther away is silently missed.',
+    mitigation: 'The window matches the range where cues realistically scope in these synthetic sigs, and the boundary rules are probed above. A clinician reviewing longer narrative text should not rely on the flag.',
+    probe: () => {
+      const text = 'No sign of any of the following findings at any point today during the entire bedside exam: dyspnea.';
+      const spans = locateJargonSpans(text, 'en');
+      const dyspnea = spans.find((s) => s.id === 'dyspnea');
+      return { triggered: Boolean(dyspnea) && dyspnea.negated !== true, observed: [dyspnea ? dyspnea.negated : 'term-not-found'] };
+    },
+    expectedTriggered: true
+  },
+  {
+    id: 'fail-claim-scope',
+    title: 'Claim check covers extracted claims only',
+    detail: 'Only medication doses, lab values, standalone dosages, and dates are verified against the source. Advice, timing rules, and narrative claims pass through unchecked.',
+    mitigation: 'The claim panel lists exactly which claims were checked and what each was compared against, so nothing unverified is presented as verified. A clinician must confirm the rest.',
+    probe: () => {
+      const r = verifyClaim({ type: 'narrative', subject: null, value: null, raw: 'the regimen is safe for you' }, 'Apixaban 2.5 mg PO BID.');
+      return { triggered: r.supported === false, observed: [r.reason] };
     },
     expectedTriggered: true
   }
@@ -502,6 +646,85 @@ export function evaluateTriage() {
     outcome: c.correct ? 1 : 0
   }));
   return { task: 'Red-flag symptom triage', ...scored, brier: brierScore(brierEntries) };
+}
+
+/**
+ * Negation task: for each labeled note, the set of lexicon span IDs marked
+ * negated must equal the authored negated set. Affirmed terms a naive cue
+ * scan would swallow count as false positives through the set diff.
+ */
+export function evaluateNegation() {
+  const perCase = GROUND_TRUTH_NEGATION.map((c) => {
+    const spans = locateJargonSpans(c.text);
+    const predicted = [...new Set(spans.filter((s) => s.negated === true).map((s) => s.id))];
+    const scored = scoreSet(predicted, c.negated);
+    const affirmed = c.affirmed || [];
+    const affirmedFlagged = affirmed.filter((id) => predicted.includes(id));
+    return {
+      id: c.id,
+      label: c.label,
+      expected: c.negated,
+      predicted,
+      ...scored,
+      affirmedFlagged,
+      correct: scored.fp === 0 && scored.fn === 0 && affirmedFlagged.length === 0
+    };
+  });
+  const tp = perCase.reduce((sum, c) => sum + c.tp, 0);
+  const fp = perCase.reduce((sum, c) => sum + c.fp, 0);
+  const fn = perCase.reduce((sum, c) => sum + c.fn, 0);
+  const precision = safeDivide(tp, tp + fp);
+  const recall = safeDivide(tp, tp + fn);
+  const f1 = safeDivide(2 * precision * recall, precision + recall);
+  return {
+    task: 'Negation flag detection',
+    n: perCase.length,
+    tp, fp, fn, precision, recall, f1,
+    accuracy: safeDivide(perCase.filter((c) => c.correct).length, perCase.length),
+    perCase
+  };
+}
+
+/**
+ * Claim-check task: planted unsupported claims (dose drift, lab drift, unit
+ * confusion, invented drugs, invented numbers, date drift) must be flagged,
+ * and clean claims must stay verified. Catch rate counts planted flags found;
+ * false-flag rate counts extra flags on clean text over all extracted claims.
+ */
+export function evaluateClaimVerification() {
+  const perCase = GROUND_TRUTH_CLAIM_CHECKS.map((c) => {
+    const report = verifyGeneratedText(c.source, c.generated);
+    const flagged = report.results.filter((r) => !r.supported).length;
+    const supported = report.results.filter((r) => r.supported).length;
+    return {
+      id: c.id,
+      label: c.label,
+      expected: `${c.expectedFlagged} flagged`,
+      predicted: `${flagged} flagged of ${report.total}`,
+      claims: report.total,
+      flagged,
+      supported,
+      expectedFlagged: c.expectedFlagged,
+      correct: flagged === c.expectedFlagged,
+      reasons: report.results.filter((r) => !r.supported).map((r) => r.reason)
+    };
+  });
+  const expectedFlags = perCase.reduce((sum, c) => sum + c.expectedFlagged, 0);
+  const actualFlags = perCase.reduce((sum, c) => sum + c.flagged, 0);
+  const caught = perCase.reduce((sum, c) => sum + Math.min(c.flagged, c.expectedFlagged), 0);
+  const extraFlags = perCase.reduce((sum, c) => sum + Math.max(0, c.flagged - c.expectedFlagged), 0);
+  const totalClaims = perCase.reduce((sum, c) => sum + c.claims, 0);
+  return {
+    task: 'Output claim verification',
+    n: perCase.length,
+    totalClaims,
+    expectedFlags,
+    actualFlags,
+    catchRate: safeDivide(caught, expectedFlags),
+    flagAccuracy: safeDivide(perCase.filter((c) => c.correct).length, perCase.length),
+    falseFlagRate: safeDivide(extraFlags, totalClaims),
+    perCase
+  };
 }
 
 /** Readability task on the four real preset scenario notes, EN and ES. */
@@ -767,6 +990,8 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
   const term = evaluateTermDetection();
   const collision = evaluateCollisions();
   const triage = evaluateTriage();
+  const negation = evaluateNegation();
+  const claimCheck = evaluateClaimVerification();
   const readability = evaluateReadability();
   const latency = measureLatency(nowFn, repeats);
   const failureModes = evaluateFailureModes();
@@ -781,6 +1006,8 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       termCases: GROUND_TRUTH_CASES.length,
       collisionCases: GROUND_TRUTH_COLLISIONS.length,
       triageCases: GROUND_TRUTH_TRIAGE.length,
+      negationCases: GROUND_TRUTH_NEGATION.length,
+      claimCheckCases: GROUND_TRUTH_CLAIM_CHECKS.length,
       readabilityRows: readability.n,
       lexiconEntries: CLINICAL_LEXICON.length,
       otcAddons: OTC_ADDONS.length,
@@ -797,6 +1024,13 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       triageAccuracy: Number(triage.accuracy.toFixed(4)),
       triageF1: Number(triage.f1.toFixed(4)),
       triageBrier: Number(triage.brier.toFixed(4)),
+      negationPrecision: Number(negation.precision.toFixed(4)),
+      negationRecall: Number(negation.recall.toFixed(4)),
+      negationF1: Number(negation.f1.toFixed(4)),
+      negationAccuracy: Number(negation.accuracy.toFixed(4)),
+      claimCatchRate: Number(claimCheck.catchRate.toFixed(4)),
+      claimFlagAccuracy: Number(claimCheck.flagAccuracy.toFixed(4)),
+      claimFalseFlagRate: Number(claimCheck.falseFlagRate.toFixed(4)),
       combinedBrier,
       meanGradeAfter: readability.meanGradeAfter,
       meanGradeDrop: readability.meanGradeDrop,
@@ -812,7 +1046,7 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       latencyVsBaseline: 'Baseline does no work (0 ms). The measured cost is the full rules suite, paid once per interaction in the browser.',
       cost: 'Zero network requests, zero API spend, zero server cost. All computation runs client-side.'
     },
-    tasks: { term, collision, triage, readability, latency },
+    tasks: { term, collision, triage, negation, claimCheck, readability, latency },
     heldOut,
     failureModes,
     disclaimers: DISCLAIMERS
@@ -824,11 +1058,13 @@ export function formatCliReport(report) {
   const m = report.metrics;
   const lines = [
     `ClinNote Evaluation & Failure-Mode Benchmark v${report.version} (${report.date})`,
-    `Corpus: ${report.corpus.termCases} term cases, ${report.corpus.collisionCases} collision cases, ${report.corpus.triageCases} triage cases, ${report.corpus.readabilityRows} readability rows, ${report.corpus.failureProbes} failure probes`,
+    `Corpus: ${report.corpus.termCases} term cases, ${report.corpus.collisionCases} collision cases, ${report.corpus.triageCases} triage cases, ${report.corpus.negationCases} negation cases, ${report.corpus.claimCheckCases} claim cases, ${report.corpus.readabilityRows} readability rows, ${report.corpus.failureProbes} failure probes`,
     '',
     `Term detection: P ${m.termPrecision} R ${m.termRecall} F1 ${m.termDetectionF1} Brier ${m.termDetectionBrier}`,
     `Collision detection: F1 ${m.collisionF1} accuracy ${m.collisionAccuracy}`,
     `Triage: accuracy ${m.triageAccuracy} F1 ${m.triageF1} Brier ${m.triageBrier}`,
+    `Negation flags: P ${m.negationPrecision} R ${m.negationRecall} F1 ${m.negationF1} case accuracy ${m.negationAccuracy}`,
+    `Claim check: catch rate ${m.claimCatchRate} flag accuracy ${m.claimFlagAccuracy} false-flag rate ${m.claimFalseFlagRate}`,
     `Readability: mean grade after ${m.meanGradeAfter}, mean drop ${m.meanGradeDrop}`,
     `Latency: ${m.meanMsPerOperation} ms/operation, ${m.meanMsPerFullSuite} ms/full suite`,
     '',

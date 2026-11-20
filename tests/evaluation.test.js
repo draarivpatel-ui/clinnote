@@ -33,7 +33,7 @@ test('Eval 01: corpus is frozen, hand-labeled, and free of private data', () => 
   assert.equal(GROUND_TRUTH_CASES.length, 10);
   assert.equal(GROUND_TRUTH_COLLISIONS.length, 7);
   assert.equal(GROUND_TRUTH_TRIAGE.length, 7);
-  assert.equal(FAILURE_CONDITIONS.length, 8);
+  assert.equal(FAILURE_CONDITIONS.length, 10);
   assert.ok(DISCLAIMERS.length >= 4);
   for (const c of GROUND_TRUTH_CASES) {
     assert.equal(typeof c.id, 'string');
@@ -179,9 +179,9 @@ test('Eval 12: latency is deterministic under a caller-supplied clock', () => {
   assert.ok(a.meanMsPerFullSuite > a.meanMsPerOperation);
 });
 
-test('Eval 13: all eight failure probes are confirmed with explicit mitigations', () => {
+test('Eval 13: all ten failure probes are confirmed with explicit mitigations', () => {
   const modes = evaluateFailureModes();
-  assert.equal(modes.length, 8);
+  assert.equal(modes.length, 10);
   for (const m of modes) {
     assert.equal(m.status, 'confirmed', `${m.id} reported ${m.status}`);
     assert.equal(m.triggered, m.expectedTriggered);
@@ -209,10 +209,14 @@ test('Eval 14: full report is pure, stable, and carries verified headline metric
   assert.equal(a.corpus.lexiconEntries, CLINICAL_LEXICON.length);
   assert.equal(a.corpus.otcAddons, OTC_ADDONS.length);
   assert.equal(a.corpus.scenarios, CLINICAL_SCENARIOS.length);
-  assert.equal(a.corpus.failureProbes, 8);
+  assert.equal(a.corpus.failureProbes, 10);
+  assert.equal(a.corpus.negationCases, 26);
+  assert.equal(a.corpus.claimCheckCases, 10);
   assert.equal(a.tasks.term.n, 10);
   assert.equal(a.tasks.collision.n, 7);
   assert.equal(a.tasks.triage.n, 7);
+  assert.equal(a.tasks.negation.n, 26);
+  assert.equal(a.tasks.claimCheck.n, 10);
 });
 
 test('Eval 15: baseline comparison is explicit and every gain is a real difference', () => {
@@ -238,7 +242,9 @@ test('Eval 16: CLI report contains exact metrics, baseline, failure states and g
   assert.match(out, /Triage: accuracy 1 F1 1 Brier 0/);
   assert.match(out, /Baseline \(naive-raw-text\)/);
   assert.match(out, /Gains: term F1 \+0.9459/);
-  assert.match(out, /\[confirmed\] Negation is not resolved/);
+  assert.match(out, /\[confirmed\] Negation is flagged but not clinically resolved/);
+  assert.match(out, /Negation flags: P 1 R 1 F1 1 case accuracy 1/);
+  assert.match(out, /Claim check: catch rate 1 flag accuracy 1 false-flag rate 0/);
   assert.match(out, /Guardrails:/);
   assert.match(out, /not clinical accuracy on real patient discharge notes/);
   assert.equal(/[\u2013\u2014]/.test(out), false);

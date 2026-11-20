@@ -2011,3 +2011,313 @@ code {
   text-decoration: line-through;
   opacity: 0.72;
 }
+
+/* Synthetic example labeling ----------------------------------------- */
+
+.synthetic-badge {
+  padding: 3px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-3);
+  font: 600 0.74rem/1.4 var(--font-sans);
+  white-space: nowrap;
+}
+
+.tab-synthetic {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 1px 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-3);
+  font: 600 0.7rem/1.5 var(--font-sans);
+}
+
+/* Source panel tools + audit export ----------------------------------- */
+
+.source-panel-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.audit-export-group {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.audit-export-group .btn-secondary {
+  min-height: 30px;
+  padding: 5px 11px;
+  font-size: 0.74rem;
+}
+
+/* Claim check panel --------------------------------------------------- */
+
+.claim-check-block {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.claim-check-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.claim-check-head .subtable-heading {
+  margin-bottom: 0;
+}
+
+.claim-filter-group {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-sunk);
+}
+
+.claim-filter-btn {
+  min-width: 40px;
+  padding: 4px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font: 600 0.74rem/1.4 var(--font-sans);
+  cursor: pointer;
+}
+
+.claim-filter-btn.is-active {
+  background: var(--ink);
+  color: #FFFFFF;
+}
+
+.claim-audit-input {
+  margin: 4px 0 10px;
+}
+
+.claim-audit-mode {
+  margin: 0 0 6px;
+  color: var(--ink-3);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.claim-audit-text {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunk);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.claim-audit-text[hidden] {
+  display: none;
+}
+
+.claim-check-summary {
+  margin-bottom: 10px;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.claim-check-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.claim-check-list[data-filter='verified'] .claim-row[data-status='flagged'],
+.claim-check-list[data-filter='flagged'] .claim-row[data-status='verified'] {
+  display: none;
+}
+
+.claim-row-btn {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunk);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.claim-row-btn:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.claim-row[data-status='flagged'] .claim-row-btn {
+  border-color: rgba(194, 53, 43, 0.4);
+  background: var(--danger-tint);
+}
+
+.claim-row[data-status='flagged'] .claim-row-btn:hover {
+  border-color: var(--danger);
+}
+
+.claim-row-btn.is-jump,
+.claim-flag.is-jump {
+  outline: 3px solid var(--link-line);
+  outline-offset: 1px;
+}
+
+.claim-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.claim-raw {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.claim-kind {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.claim-pill {
+  margin-left: auto;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font: 700 0.7rem/1.6 var(--font-mono);
+}
+
+.claim-pill[data-state='verified'] {
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+}
+
+.claim-pill[data-state='flagged'] {
+  background: var(--danger);
+  color: #FFFFFF;
+}
+
+.claim-detail {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.claim-excerpt {
+  display: block;
+  padding: 6px 9px;
+  border-left: 3px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.claim-row[data-status='flagged'] .claim-excerpt {
+  border-left-color: var(--danger);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.claim-src-mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: var(--link-tint);
+  color: var(--link);
+  font-weight: 700;
+}
+
+.claim-row-empty {
+  padding: 10px 12px;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+/* Flagged claims inside the plain-language output ---------------------- */
+
+.claim-flag {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--danger-tint);
+  color: var(--danger);
+  box-shadow: inset 0 -2px 0 var(--danger);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Click-to-jump flash on the source span or note box ------------------- */
+
+.prov-mark.is-jump {
+  background: var(--link-tint);
+  color: var(--link);
+  box-shadow: inset 0 -2px 0 var(--link-line), 0 0 0 3px var(--link-line);
+}
+
+.clinical-note-box.is-jump-flash {
+  box-shadow: inset 0 0 0 3px var(--link-line);
+}
+
+/* Negated source-span chips in the glossary ---------------------------- */
+
+.span-chip.is-negated {
+  text-decoration: line-through;
+  opacity: 0.72;
+}
+
+.span-chip i {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--caution);
+  text-decoration: none;
+}
+
+/* Single-bar metric blocks on the eval board --------------------------- */
+
+.metric-block-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .claim-check-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .claim-row-btn {
+    padding: 10px;
+  }
+
+  .claim-pill {
+    margin-left: 0;
+  }
+
+  .source-panel-tools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

@@ -2,7 +2,7 @@
 
 **Live workbench:** [https://aariv.me/clinnote/](https://aariv.me/clinnote/)
 
-ClinNote turns hospital discharge shorthand into plain English or Spanish, links every explained term back to the exact characters it came from in the original note, lays the doses out on a 24-hour clock, checks four common over-the-counter add-ons for collisions, and prints a bilingual refrigerator schedule. It runs entirely in the browser tab: no server, no account, no network requests, no external fonts or scripts.
+ClinNote turns hospital discharge shorthand into plain English or Spanish, links every explained term back to the exact characters it came from in the original note, marks negated findings, verifies every dose, lab value and date in the output against the source, lays the doses out on a 24-hour clock, checks four common over-the-counter add-ons for collisions, and prints a bilingual refrigerator schedule. It runs entirely in the browser tab: no server, no account, no network requests, no external fonts or scripts.
 
 ![ClinNote diagram](img/clinnote-hero.jpg)
 
@@ -15,9 +15,12 @@ A discharge note is written for the next clinician, not for the family driving h
 - **Term-by-term explanation with provenance.** A 38-entry bilingual lexicon finds shorthand and medical terms. Every hit becomes a numbered highlight in the source note, and the glossary row for that term lists the exact character range of each occurrence (for example `PO 99 to 101`). Hovering or focusing a highlight lights up its glossary row and the other way round, so a reviewer can check every explanation against the original text in one glance.
 - **Readability telemetry.** Source and output Flesch-Kincaid grades, signed score change, remaining lexicon terms and syllables per word, all measured on the exact paragraph shown.
 - **Four preset discharge notes** (pediatric asthma, type 2 diabetes with CKD, knee replacement with a blood thinner, hypertension with thyroid replacement), each with curated English and Spanish text, labs and vitals.
+- **Negation detection with real scope rules.** A NegEx-style pass over each found term handles single-word cues (`no`, `denies`, `without`), multi-word cues (`no history of`, `rules out`, `negative for`), postposed charting (`dyspnea denied`, `dyspnea was ruled out`, `dyspnea: negative`), bare comma lists (`denies melena, hemoptysis, dyspnea`), and pseudo-negations (`not ruled out`, `cannot rule out`). Scope stops at sentence ends, colons, semicolons and termination words like `but`, so `Answer: no. Dyspnea persists.` is not wrongly negated. Negated spans and glossary chips are marked in amber.
+- **Claim check against the source.** Every numeric claim in the output - each drug dose, lab value and date - is verified against the source note by proximity, not by whether the number exists anywhere in the text. A window stops at the neighboring subject, so `Lisinopril 10 mg` can never rescue `Metformin 10 mg` when the source reads `Metformin 500 mg`. Unsupported claims get a red flag badge in the text and a row in the claim panel with the reason (`dosage-mismatch`, `lab-value-mismatch`, `unit-mismatch`, `date-mismatch`, `unsupported`), the source excerpt and the exact character range. The panel has an All / Verified / Flagged filter, every row and badge jumps to its source span, and you can paste your own draft summary to audit it instead of the app's output.
+- **Audit trail export.** One JSON or CSV file listing every source span (with offsets and negation state) plus every extracted claim and its verdict.
 - **24-hour dose clock and add-on check.** An SVG clock over eight fixed slots, an hour-by-hour ledger, and collision checks for ibuprofen, calcium with iron, diphenhydramine and grapefruit juice (`CRITICALCONTRAINDICATION`, `RENAL_TRIPLE_WHAMMY`, `ABSORPTION_CHELATION`, `SEDATION_STACK`).
 - **Red-flag symptom checklist** with routine, same-day clinic or emergency department outcomes, always ending with "If in doubt, call 911" in English and Spanish.
-- **Evaluation board on the page.** The held-out score, two baselines and the development-set metrics render on load, and a five-tab report covers metrics, baseline, failure conditions, per-case detail and guardrails.
+- **Evaluation board on the page.** The held-out score, two baselines, the negation and claim-audit metrics and the development-set metrics render on load, and a five-tab report covers metrics, baseline, failure conditions, per-case detail and guardrails.
 - **Safety, limits and who is affected** panel on the page, matching the sections below.
 
 ## Evaluation
@@ -42,7 +45,7 @@ What this shows, plainly:
 
 ### Development set and baseline
 
-The development corpus was written alongside the engine (10 term cases, 7 collision cases, 7 triage cases, 8 readability rows), so treat these as an upper bound. The baseline echoes the note, flags no collision and always answers `ROUTINE HOME CARE`.
+The development corpus was written alongside the engine (10 term cases, 7 collision cases, 7 triage cases, 26 negation cases, 10 claim-check cases, 8 readability rows), so treat these as an upper bound. The baseline echoes the note, flags no collision and always answers `ROUTINE HOME CARE`.
 
 | Task | ClinNote | Echo baseline | Gain |
 | --- | --- | --- | --- |
@@ -57,6 +60,8 @@ The development corpus was written alongside the engine (10 term cases, 7 collis
 | Jargon token detection | Brier | 0.0104 |
 | Medication collision detection | F1 / exact-set accuracy | 1.0000 / 1.0000 |
 | Red-flag triage | Accuracy / micro-F1 / Brier | 1.0000 / 1.0000 / 0.0000 |
+| Negation flags on 26 authored cases | Precision / Recall / F1 / case accuracy | 1.0000 / 1.0000 / 1.0000 / 1.0000 |
+| Claim verification on 10 planted-drift cases | Catch rate / flag accuracy / false-flag rate | 1.0000 / 1.0000 / 0.0000 |
 | Readability formula on 8 displayed outputs | Mean output / mean source minus output | 13.73 / 0.10 |
 
 Term scoring counts every candidate once across 384 binary candidates (all 38 lexicon IDs, expected labels including unsupported terms, explicit negatives and predictions), so Brier is 4 / 384. The four development misses are `hematuria` (twice), `SL` and `q3h`, all outside the lexicon.
@@ -74,7 +79,7 @@ Readability is measured on the exact paragraph shown. Mean source grade minus ou
 | `hypertensive-thyroid-sync` | EN | 14.29 | 11.64 | 12 -> 1 |
 | `hypertensive-thyroid-sync` | ES | 14.29 | 16.71 | 12 -> 0 |
 
-Eight failure probes (negation, missing lexicon coverage, readability as a proxy, four-item add-on coverage, fixed clock hours, checkbox triage, limited Spanish substitution, empty input) run live on every evaluation and are listed in the on-page report. The whole benchmark makes zero network requests; latency is measured live and is a fraction of a millisecond per operation on a laptop.
+Ten failure probes (negation flagged but not clinically resolved, negation scope capped at a ten-token window, claim checks covering extracted claims only, missing lexicon coverage, readability as a proxy, four-item add-on coverage, fixed clock hours, checkbox triage, limited Spanish substitution, empty input) run live on every evaluation and are listed in the on-page report. The whole benchmark makes zero network requests; latency is measured live and is a fraction of a millisecond per operation on a laptop.
 
 ## Who benefits / harmed
 
@@ -87,7 +92,8 @@ Eight failure probes (negation, missing lexicon coverage, readability as a proxy
 **Who could be harmed, and how**
 
 - A reader who trusts the plain-language text over the clinician. With held-out recall of 0.58, a real note will often contain terms ClinNote leaves unexplained, and the page cannot tell the reader what it missed.
-- A reader of a note with negation. Negated terms (such as "No dyspnea") are now marked as negated in the source spans and audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.
+- A reader of a note with negation. Negated terms (such as "No dyspnea") are marked as negated in the source spans, glossary chips and audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.
+- A reader who trusts the claim check to catch every error. The checker verifies extracted numeric claims (doses, lab values, dates) against the source by proximity; it cannot catch a claim with no number, a misspelled subject, or an instruction that is dangerous but arithmetically correct.
 - Spanish readers of pasted custom notes. Custom Spanish output is word substitution, not translation, and needs an interpreter. Printing is disabled for custom text for this reason.
 - Anyone relying on the add-on check for an item not on its list of four. An unlisted supplement shows no collision, which is not the same as safe.
 
@@ -109,19 +115,19 @@ Everything runs locally as plain ES modules. The Content-Security-Policy sets `c
 Node 18 or newer, nothing to install.
 
 ```bash
-npm test                 # 159 tests
+npm test                 # 186 tests
 npm run eval             # benchmark report, held-out set included
-npm run eval:check       # regression floors and the eight failure probes
+npm run eval:check       # regression floors and the ten failure probes
 npm run eval:json        # full machine-readable report
 python3 -m http.server   # then open http://localhost:8000/
 ```
 
 | File | What it holds |
 | --- | --- |
-| `js/clinnote-engine.js` | Lexicon, readability, provenance spans, dose clock, collisions, triage |
-| `js/evaluation.js` | Development corpus, held-out set, baselines, failure probes |
-| `js/app.js` | Page controller (escaped rendering, provenance links, evaluation board) |
-| `tests/` | 159 tests: engine, DOM smoke, evaluation, evaluation DOM, held-out and provenance, hygiene, claim verification |
+| `js/clinnote-engine.js` | Lexicon, readability, provenance spans, negation scope, claim verification, dose clock, collisions, triage, audit trail |
+| `js/evaluation.js` | Development corpus, negation and claim corpora, held-out set, baselines, failure probes |
+| `js/app.js` | Page controller (escaped rendering, provenance links, claim-check panel, draft audit, evaluation board) |
+| `tests/` | 186 tests: engine, DOM smoke, evaluation, evaluation DOM, held-out and provenance, hygiene, claim verification, Wave 2 audit regressions |
 | `video/` | Demo walkthrough steps and narration |
 
 ## License

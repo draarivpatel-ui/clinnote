@@ -116,6 +116,7 @@
         <div class="scenario-meta-strip">
           <span id="active-scenario-code" class="mono-badge tabular-nums">ER-PULM-01</span>
           <span id="active-scenario-dept" class="dept-tag">Pediatric Emergency Department Discharge</span>
+          <span class="synthetic-badge">Synthetic example</span>
         </div>
       </div>
 
@@ -129,6 +130,7 @@
         >
           <span class="tab-title">Post-ER Acute Bronchospasm &amp; Steroid Taper</span>
           <span class="tab-sub mono-text">Albuterol MDI q4h PRN + Prednisone 20 mg PO QD + SpO2 &gt;= 94%</span>
+          <span class="tab-synthetic">Synthetic example</span>
         </button>
 
         <button
@@ -140,6 +142,7 @@
         >
           <span class="tab-title">Type 2 Diabetes &amp; CKD Stage 3a Lab Telemetry</span>
           <span class="tab-sub mono-text">Metformin BID + Lisinopril + Empagliflozin (eGFR 52 / K+ 4.9)</span>
+          <span class="tab-synthetic">Synthetic example</span>
         </button>
 
         <button
@@ -151,6 +154,7 @@
         >
           <span class="tab-title">Post-Op Knee Arthroplasty &amp; Anticoagulation</span>
           <span class="tab-sub mono-text">Apixaban 2.5 mg BID q12h + Acetaminophen + Oxycodone PRN</span>
+          <span class="tab-synthetic">Synthetic example</span>
         </button>
 
         <button
@@ -162,6 +166,7 @@
         >
           <span class="tab-title">Hypertensive Urgency &amp; Fasting Thyroid Sync</span>
           <span class="tab-sub mono-text">Levothyroxine 75 mcg QAM 60m AC + Amlodipine + Calcium BID</span>
+          <span class="tab-synthetic">Synthetic example</span>
         </button>
       </div>
     </section>
@@ -176,7 +181,13 @@
         <div class="clinical-source-panel">
           <div class="panel-title-row">
             <h3 class="panel-heading">Source note</h3>
-            <span id="provenance-summary" class="provenance-summary tabular-nums">0 spans</span>
+            <div class="source-panel-tools">
+              <span id="provenance-summary" class="provenance-summary tabular-nums">0 spans</span>
+              <span class="audit-export-group" role="group" aria-label="Download the audit trail">
+                <button type="button" id="audit-export-json-btn" class="btn-secondary">JSON audit</button>
+                <button type="button" id="audit-export-csv-btn" class="btn-secondary">CSV audit</button>
+              </span>
+            </div>
           </div>
           <div id="raw-clinical-note-display" class="clinical-note-box mono-text"></div>
           <p class="provenance-hint">Each highlighted span is an exact character range in the note. Hover or focus a span or a glossary row to link the two.</p>
@@ -201,6 +212,30 @@
             <h3 class="panel-heading">Plain-language guide</h3>
           </div>
           <div id="plain-patient-note-display" class="plain-output-box" aria-live="polite"></div>
+
+          <div class="claim-check-block" id="claim-check-block">
+            <div class="claim-check-head">
+              <h4 class="subtable-heading">Claim check against the source</h4>
+              <div class="claim-filter-group" role="group" aria-label="Filter claims by result">
+                <button type="button" id="claim-filter-all" class="claim-filter-btn is-active" data-claim-filter="all" aria-pressed="true">All</button>
+                <button type="button" id="claim-filter-verified" class="claim-filter-btn" data-claim-filter="verified" aria-pressed="false">Verified</button>
+                <button type="button" id="claim-filter-flagged" class="claim-filter-btn" data-claim-filter="flagged" aria-pressed="false">Flagged</button>
+              </div>
+            </div>
+            <div class="claim-audit-input">
+              <label for="draft-audit-textarea" class="custom-textarea-label">Audit your own draft (optional, stays in this tab)</label>
+              <textarea
+                id="draft-audit-textarea"
+                class="custom-textarea"
+                rows="2"
+                placeholder="Paste any draft patient summary to check each dose, lab value and date against the source note. Leave empty to audit this app's own output."
+              ></textarea>
+            </div>
+            <p id="claim-audit-mode" class="claim-audit-mode"></p>
+            <div id="claim-audit-text" class="claim-audit-text" hidden></div>
+            <p id="claim-check-summary" class="claim-check-summary"></p>
+            <ul id="claim-check-list" class="claim-check-list" data-filter="all"></ul>
+          </div>
 
           <div class="lexicon-table-wrap">
             <h4 class="subtable-heading">Explained terms and where they came from</h4>
@@ -304,6 +339,11 @@
           <div id="devset-chart" class="devset-chart" aria-live="polite"></div>
           <p class="eval-board-note">The development corpus was written alongside the engine, so its scores are an upper bound. The held-out notes were written after the lexicon was frozen and are the fairer number.</p>
         </article>
+        <article class="eval-board-card" aria-labelledby="claimaudit-heading">
+          <h3 id="claimaudit-heading" class="panel-heading">Negation and claim audit</h3>
+          <div id="claim-eval-chart" class="devset-chart" aria-live="polite"></div>
+          <p id="claim-eval-caption" class="eval-board-note"></p>
+        </article>
       </div>
 
       <details class="heldout-details">
@@ -375,7 +415,8 @@
           <h3 class="impact-title">Who could be harmed, and how</h3>
           <ul class="impact-list">
             <li>A reader who trusts the plain-language text over the clinician. The engine misses terms outside its 38-entry lexicon (<span id="impact-heldout-recall" class="tabular-nums">held-out recall pending</span>), and a missed term stays unexplained.</li>
-            <li>A reader of a note with negation. Negated terms (such as "No dyspnea") are now marked as negated in the source spans and audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.</li>
+            <li>A reader of a note with negation. Negated terms (such as "No dyspnea") are struck through in the source spans and flagged in the audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.</li>
+            <li>A reader who treats a verified claim as clinical truth. The claim check confirms that a dose, lab value or date appears near its subject in the source; it cannot tell whether the advice itself is right, and claims it cannot extract pass through unchecked.</li>
             <li>Spanish readers of pasted custom notes. Custom Spanish output is word substitution, not translation, and needs an interpreter.</li>
             <li>Anyone relying on the add-on check for an item not on its list of four. An unlisted supplement shows no collision, which is not the same as safe.</li>
           </ul>
