@@ -375,7 +375,7 @@
           <h3 class="impact-title">Who could be harmed, and how</h3>
           <ul class="impact-list">
             <li>A reader who trusts the plain-language text over the clinician. The engine misses terms outside its 38-entry lexicon (<span id="impact-heldout-recall" class="tabular-nums">held-out recall pending</span>), and a missed term stays unexplained.</li>
-            <li>A reader of a note with negation. "No dyspnea" is still flagged as dyspnea, because the matcher has no sense of negation.</li>
+            <li>A reader of a note with negation. Negated terms (such as "No dyspnea") are now marked as negated in the source spans and audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.</li>
             <li>Spanish readers of pasted custom notes. Custom Spanish output is word substitution, not translation, and needs an interpreter.</li>
             <li>Anyone relying on the add-on check for an item not on its list of four. An unlisted supplement shows no collision, which is not the same as safe.</li>
           </ul>

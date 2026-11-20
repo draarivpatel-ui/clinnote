@@ -2005,3 +2005,9 @@ code {
     scroll-behavior: auto;
   }
 }
+
+/* Negated claim spans: shown as struck/neutral so a denied term is not read as present. */
+.prov-mark.is-negated {
+  text-decoration: line-through;
+  opacity: 0.72;
+}

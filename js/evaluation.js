@@ -232,7 +232,7 @@ export const FAILURE_CONDITIONS = [
     id: 'fail-negation',
     title: 'Negation is not resolved',
     detail: 'The token matcher flags terms inside negated phrases such as "No dyspnea observed". It reports the token as present rather than judging clinical meaning.',
-    mitigation: 'The UI labels detections as "terms detected", never as diagnoses. A clinician must read the source note.',
+    mitigation: 'Detections are now marked as negated in source spans and the audit trail, but the UI still labels them as terms detected, never as diagnoses. A clinician must read the source note.',
     probe: () => {
       const r = detectJargonMatches('No dyspnea observed.', 'en');
       return { triggered: r.some((m) => m.id === 'dyspnea'), observed: r.map((m) => m.id) };

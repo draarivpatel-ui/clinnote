@@ -42,7 +42,8 @@ function renderProvenanceNote(text, spans) {
     kept.push(span);
     const n = kept.length;
     html += escapeHtml(source.slice(cursor, span.start));
-    html += `<mark class="prov-mark" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
+    const negCls = span.negated ? ' is-negated' : '';
+    html += `<mark class="prov-mark${negCls}" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}${span.negated ? ' (negated)' : ''}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
     cursor = span.end;
   }
   html += escapeHtml(source.slice(cursor));

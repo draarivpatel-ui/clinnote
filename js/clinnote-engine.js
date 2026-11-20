@@ -838,7 +838,8 @@ export function locateJargonSpans(text) {
         category: entry.category,
         start: m.index,
         end: m.index + m[0].length,
-        text: m[0]
+        text: m[0],
+        negated: isNegatedContext(text, m.index, m[0].length)
       });
       if (m[0].length === 0) regex.lastIndex += 1;
       m = regex.exec(text);
@@ -1488,3 +1489,242 @@ export function buildUiViewState(state) {
     selectedSymptomIds: current.selectedSymptomIds
   };
 }
+
+export const NEGATION_CUES = [
+  'no',
+  'not',
+  'none',
+  'denies',
+  'denied',
+  'without',
+  'negative',
+  'absence',
+  'rules out',
+  'ruled out',
+  'free of',
+  'absent'
+];
+
+export function isNegatedContext(text, start = 0, length = 0) {
+  if (typeof text !== 'string') return false;
+  const safeStart = Number.isFinite(start) ? Math.max(0, start) : 0;
+  const safeLength = Number.isFinite(length) ? Math.max(0, length) : 0;
+  const end = safeStart + safeLength;
+  const before = text.slice(Math.max(0, safeStart - 80), safeStart);
+  const after = text.slice(end, end + 40);
+
+  // Following cue: "dyspnea denied", "chest pain ruled out"
+  if (/^\s*(denied|ruled\s+out|negative|absent)\b/i.test(after)) {
+    return true;
+  }
+
+  const words = before.toLowerCase().split(/\s+/).filter(Boolean);
+  const tail = words.slice(-6);
+  for (let i = 0; i < tail.length; i += 1) {
+    const w = tail[i].replace(/[^a-z]/g, '');
+    if (NEGATION_CUES.includes(w)) {
+      // ensure cue is not separated by a strong clause boundary in between
+      const between = tail.slice(i + 1).join(' ');
+      if (!/[.;:!?]/.test(between)) return true;
+    }
+    // two-word cue "rules out" / "ruled out" / "negative for"
+    if (i < tail.length - 1) {
+      const pair = `${tail[i]} ${tail[i + 1]}`.replace(/[^a-z ]/g, '');
+      if (pair === 'rules out' || pair === 'ruled out' || pair === 'negative for' || pair === 'free of') {
+        return true;
+      }
+    }
+  }
+  // "no known allergies" style: cue + adjective before term
+  if (/\b(no|not|denies|without)\b[^.?!;]{0,40}$/i.test(before)) {
+    return true;
+  }
+  return false;
+}
+
+export function detectNegatedTerms(text) {
+  if (typeof text !== 'string' || text.length === 0) return [];
+  return locateJargonSpans(text).filter((s) => s.negated === true);
+}
+
+export function hasNegation(text) {
+  return detectNegatedTerms(text).length > 0;
+}
+
+// --- Dosage / unit handling ---
+const DOSAGE_REGEX = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|ml|units?|IU|mmol|meq|mEq|%|puffs?|tablets?)\b/gi;
+
+export function parseDosages(text) {
+  if (typeof text !== 'string') return [];
+  const out = [];
+  let m = DOSAGE_REGEX.exec(text);
+  while (m !== null) {
+    out.push({ value: Number(m[1]), unit: m[2], raw: m[0], index: m.index });
+    if (m[0].length === 0) DOSAGE_REGEX.lastIndex += 1;
+    m = DOSAGE_REGEX.exec(text);
+  }
+  DOSAGE_REGEX.lastIndex = 0;
+  return out;
+}
+
+export function compareDosages(sourceText, claimedText) {
+  const src = parseDosages(sourceText);
+  const clm = parseDosages(claimedText);
+  const mismatches = [];
+  // Match by unit; flag value differences for shared units
+  const units = new Set([...src.map((d) => d.unit.toLowerCase()), ...clm.map((d) => d.unit.toLowerCase())]);
+  for (const u of units) {
+    const sVals = src.filter((d) => d.unit.toLowerCase() === u).map((d) => d.value);
+    const cVals = clm.filter((d) => d.unit.toLowerCase() === u).map((d) => d.value);
+    // For each claimed value, check it exists in source
+    for (const cv of cVals) {
+      if (!sVals.includes(cv)) {
+        mismatches.push({ unit: u, claimed: cv, source: sVals });
+      }
+    }
+  }
+  return {
+    match: mismatches.length === 0 && src.length === clm.length && src.length > 0,
+    sourceDosages: src,
+    claimedDosages: clm,
+    mismatches
+  };
+}
+
+export function detectDosageMismatch(sourceText, claimedText) {
+  return compareDosages(sourceText, claimedText).mismatches;
+}
+
+export function detectDosageMismatches(sourceText, claimedText) {
+  return detectDosageMismatch(sourceText, claimedText);
+}
+
+// --- Claim verification ---
+export function extractClaims(text) {
+  if (typeof text !== 'string' || text.trim().length === 0) return [];
+  const claims = [];
+  // Medication-like claims: drug + dose
+  const medRegex = /\b([A-Z][a-zA-Z]{2,})\s+(\d+(?:\.\d+)?)\s*(mg|mcg|g|mL|units?|IU)\b/g;
+  let m = medRegex.exec(text);
+  while (m !== null) {
+    claims.push({ type: 'medication', subject: m[1], value: Number(m[2]), unit: m[3], raw: m[0], index: m.index });
+    if (m[0].length === 0) medRegex.lastIndex += 1;
+    m = medRegex.exec(text);
+  }
+  // Lab-like claims: marker value
+  const labRegex = /\b(eGFR|HbA1c|SpO2|K\+|BP|TSH|potassium|hemoglobin)\s*[: ]\s*(\d+(?:\.\d+)?)\s*(%|mL\/min\/1\.73m2|mEq\/L|mmHg|mIU\/L|g\/dL)?/gi;
+  let l = labRegex.exec(text);
+  while (l !== null) {
+    claims.push({ type: 'lab', subject: l[1], value: Number(l[2]), unit: l[3] || '', raw: l[0], index: l.index });
+    if (l[0].length === 0) labRegex.lastIndex += 1;
+    l = labRegex.exec(text);
+  }
+  return claims;
+}
+
+export function verifyClaim(claim, sourceText) {
+  const src = typeof sourceText === 'string' ? sourceText : '';
+  if (!claim || typeof claim.raw !== 'string') {
+    return { supported: false, reason: 'invalid-claim', spans: [] };
+  }
+  const spans = locateJargonSpans(src);
+  const needle = claim.raw.toLowerCase();
+  const idx = src.toLowerCase().indexOf(needle);
+  if (idx !== -1) {
+    return { supported: true, reason: 'exact-match', spans: [{ start: idx, end: idx + claim.raw.length }] };
+  }
+  // Check dosage presence
+  if (claim.value !== undefined) {
+    const doses = parseDosages(src);
+    const match = doses.some((d) => d.value === claim.value && d.unit.toLowerCase() === String(claim.unit).toLowerCase());
+    if (!match) {
+      return { supported: false, reason: 'dosage-mismatch', spans: [] };
+    }
+  }
+  // subject presence
+  if (claim.subject && src.toLowerCase().includes(String(claim.subject).toLowerCase())) {
+    return { supported: true, reason: 'subject-match', spans: [] };
+  }
+  return { supported: false, reason: 'unsupported', spans: [] };
+}
+
+export function verifyClaims(claims, sourceText) {
+  const list = Array.isArray(claims) ? claims : [];
+  const results = list.map((c) => ({ claim: c, ...verifyClaim(c, sourceText) }));
+  const supported = results.filter((r) => r.supported).length;
+  const unsupported = results.length - supported;
+  return {
+    total: results.length,
+    supported,
+    unsupported,
+    precision: results.length ? supported / results.length : 1,
+    results
+  };
+}
+
+export function verifyClaimAgainstSource(claim, sourceText) {
+  return verifyClaim(claim, sourceText);
+}
+
+export function verifyClaimsAgainstSource(claims, sourceText) {
+  return verifyClaims(claims, sourceText);
+}
+
+// --- Audit trail ---
+export function buildAuditTrail(viewState) {
+  const vs = viewState || {};
+  const source = typeof vs.rawClinicalNote === 'string' ? vs.rawClinicalNote : '';
+  const spans = Array.isArray(vs.sourceSpans) ? vs.sourceSpans : locateJargonSpans(source);
+  const entries = spans.map((s, i) => ({
+    index: i + 1,
+    term: s.term,
+    id: s.id,
+    category: s.category,
+    surface: s.text,
+    start: s.start,
+    end: s.end,
+    negated: s.negated === true,
+    verified: true
+  }));
+  // Add dosage entries
+  for (const d of parseDosages(source)) {
+    entries.push({
+      index: entries.length + 1,
+      term: 'dosage',
+      id: 'dosage',
+      category: 'dose',
+      surface: d.raw,
+      start: d.index,
+      end: d.index + d.raw.length,
+      negated: false,
+      verified: true
+    });
+  }
+  return entries;
+}
+
+export function exportAuditTrail(entries, format = 'json') {
+  const list = Array.isArray(entries) ? entries : [];
+  if (format === 'csv') {
+    const header = 'index,term,id,category,surface,start,end,negated,verified';
+    const rows = list.map((e) => `${e.index},"${String(e.term).replace(/"/g, '""')}","${String(e.id).replace(/"/g, '""')}","${String(e.category).replace(/"/g, '""')}","${String(e.surface).replace(/"/g, '""')}",${e.start},${e.end},${e.negated},${e.verified}`);
+    return [header, ...rows].join('\n');
+  }
+  return JSON.stringify(list, null, 2);
+}
+
+export function exportAuditTrailJSON(entries) {
+  return exportAuditTrail(entries, 'json');
+}
+
+export function exportAuditTrailCsv(entries) {
+  return exportAuditTrail(entries, 'csv');
+}
+
+// aliases
+export const detectNegation = detectNegatedTerms;
+export const negationOf = isNegatedContext;
+export const findNegations = detectNegatedTerms;
+export const dosageMismatch = detectDosageMismatch;
+export const checkDosageMismatch = detectDosageMismatch;
+export const auditTrail = buildAuditTrail;

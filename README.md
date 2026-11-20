@@ -87,7 +87,7 @@ Eight failure probes (negation, missing lexicon coverage, readability as a proxy
 **Who could be harmed, and how**
 
 - A reader who trusts the plain-language text over the clinician. With held-out recall of 0.58, a real note will often contain terms ClinNote leaves unexplained, and the page cannot tell the reader what it missed.
-- A reader of a note with negation. "No dyspnea" is still flagged and explained as dyspnea.
+- A reader of a note with negation. Negated terms (such as "No dyspnea") are now marked as negated in the source spans and audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.
 - Spanish readers of pasted custom notes. Custom Spanish output is word substitution, not translation, and needs an interpreter. Printing is disabled for custom text for this reason.
 - Anyone relying on the add-on check for an item not on its list of four. An unlisted supplement shows no collision, which is not the same as safe.
 
@@ -109,7 +109,7 @@ Everything runs locally as plain ES modules. The Content-Security-Policy sets `c
 Node 18 or newer, nothing to install.
 
 ```bash
-npm test                 # 142 tests
+npm test                 # 159 tests
 npm run eval             # benchmark report, held-out set included
 npm run eval:check       # regression floors and the eight failure probes
 npm run eval:json        # full machine-readable report
@@ -121,7 +121,7 @@ python3 -m http.server   # then open http://localhost:8000/
 | `js/clinnote-engine.js` | Lexicon, readability, provenance spans, dose clock, collisions, triage |
 | `js/evaluation.js` | Development corpus, held-out set, baselines, failure probes |
 | `js/app.js` | Page controller (escaped rendering, provenance links, evaluation board) |
-| `tests/` | 142 tests: engine, DOM smoke, evaluation, evaluation DOM, held-out and provenance, hygiene |
+| `tests/` | 159 tests: engine, DOM smoke, evaluation, evaluation DOM, held-out and provenance, hygiene, claim verification |
 | `video/` | Demo walkthrough steps and narration |
 
 ## License
