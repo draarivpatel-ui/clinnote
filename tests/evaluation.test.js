@@ -97,8 +97,8 @@ test('Eval 06: term detection reports a real, non-perfect recall because of lexi
   assert.ok(r.brier > 0 && r.brier < 0.2);
   const missed = r.perCase.find((c) => c.id === 'case-out-of-lexicon');
   assert.equal(missed.correct, false);
-  assert.equal(missed.fn, 3);
-  assert.deepEqual(missed.outOfScopeExpected, ['SL', 'q3h', 'hematuria']);
+  assert.equal(missed.fn, 2);
+  assert.deepEqual(missed.outOfScopeExpected, ['telemetry', 'WNL']);
 });
 
 test('Eval 07: term detection has zero false alarms on control and substring cases', () => {
@@ -198,11 +198,11 @@ test('Eval 14: full report is pure, stable, and carries verified headline metric
   assert.deepEqual(a.metrics, b.metrics);
   assert.deepEqual(a.comparison, b.comparison);
   assert.equal(a.version, EVAL_VERSION);
-  assert.equal(a.metrics.termDetectionF1, 0.9459);
+  assert.equal(a.metrics.termDetectionF1, 0.9762);
   assert.equal(a.metrics.termPrecision, 1);
   assert.equal(a.metrics.collisionF1, 1);
   assert.equal(a.metrics.triageAccuracy, 1);
-  assert.equal(a.metrics.combinedBrier, 0.0052);
+  assert.equal(a.metrics.combinedBrier, 0.0007);
   assert.equal(a.metrics.meanGradeAfter, 13.73);
   assert.equal(a.metrics.meanGradeDrop, 0.1);
   assert.equal(a.corpus.termCases, 10);
@@ -211,12 +211,14 @@ test('Eval 14: full report is pure, stable, and carries verified headline metric
   assert.equal(a.corpus.scenarios, CLINICAL_SCENARIOS.length);
   assert.equal(a.corpus.failureProbes, 10);
   assert.equal(a.corpus.negationCases, 26);
-  assert.equal(a.corpus.claimCheckCases, 10);
+  assert.equal(a.corpus.claimCheckCases, 19);
+  assert.equal(a.corpus.contextCases, 11);
   assert.equal(a.tasks.term.n, 10);
   assert.equal(a.tasks.collision.n, 7);
   assert.equal(a.tasks.triage.n, 7);
   assert.equal(a.tasks.negation.n, 26);
-  assert.equal(a.tasks.claimCheck.n, 10);
+  assert.equal(a.tasks.claimCheck.n, 19);
+  assert.equal(a.tasks.context.n, 11);
 });
 
 test('Eval 15: baseline comparison is explicit and every gain is a real difference', () => {
@@ -237,11 +239,11 @@ test('Eval 15: baseline comparison is explicit and every gain is a real differen
 test('Eval 16: CLI report contains exact metrics, baseline, failure states and guardrails', () => {
   const r = runEvaluation({ nowFn: () => 0, repeats: 3 });
   const out = formatCliReport(r);
-  assert.match(out, /Term detection: P 1 R 0.8974 F1 0.9459/);
+  assert.match(out, /Term detection: P 1 R 0.9535 F1 0.9762/);
   assert.match(out, /Collision detection: F1 1 accuracy 1/);
   assert.match(out, /Triage: accuracy 1 F1 1 Brier 0/);
   assert.match(out, /Baseline \(naive-raw-text\)/);
-  assert.match(out, /Gains: term F1 \+0.9459/);
+  assert.match(out, /Gains: term F1 \+0.9762/);
   assert.match(out, /\[confirmed\] Negation is flagged but not clinically resolved/);
   assert.match(out, /Negation flags: P 1 R 1 F1 1 case accuracy 1/);
   assert.match(out, /Claim check: catch rate 1 flag accuracy 1 false-flag rate 0/);
@@ -274,20 +276,20 @@ test('Eval 18: forbidden and extra term predictions count once in every metric',
 
 test('Eval 19: every out-of-lexicon miss affects per-case recall, F1 and Brier consistently', () => {
   const report = evaluateTermDetection();
-  assert.equal(report.tp, 35);
+  assert.equal(report.tp, 41);
   assert.equal(report.fp, 0);
-  assert.equal(report.fn, 4);
-  assert.equal(report.candidateCount, 384);
-  assert.equal(report.recall, 35 / 39);
-  assert.equal(report.brier, 4 / 384);
+  assert.equal(report.fn, 2);
+  assert.equal(report.candidateCount, 1452);
+  assert.equal(report.recall, 41 / 43);
+  assert.equal(report.brier, 2 / 1452);
   const postop = report.perCase.find((c) => c.id === 'case-postop-anticoag');
-  assert.deepEqual(postop.outOfScopeExpected, ['hematuria']);
-  assert.equal(postop.fn, 1);
-  assert.equal(postop.recall, 7 / 8);
-  assert.equal(postop.f1, 14 / 15);
+  assert.equal(postop.fn, 0);
+  assert.equal(postop.recall, 1);
+  assert.equal(postop.f1, 1);
   const other = report.perCase.find((c) => c.id === 'case-out-of-lexicon');
-  assert.equal(other.recall, 0.5);
-  assert.equal(other.f1, 2 / 3);
+  assert.equal(other.fn, 2);
+  assert.equal(other.recall, 0.75);
+  assert.equal(other.f1, 0.8571428571428571);
 });
 
 test('Eval 20: complete alert sets penalize extra alerts even when every required code is present', () => {

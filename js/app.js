@@ -5,6 +5,7 @@
  */
 
 import {
+  CLINICAL_LEXICON,
   CLINICAL_SCENARIOS,
   OTC_ADDONS,
   createInitialAppState,
@@ -48,7 +49,9 @@ function renderProvenanceNote(text, spans) {
     const n = kept.length;
     html += escapeHtml(source.slice(cursor, span.start));
     const negCls = span.negated ? ' is-negated' : '';
-    html += `<mark class="prov-mark${negCls}" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" data-start="${span.start}" data-end="${span.end}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}${span.negated ? ' (negated)' : ''}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
+    const uncCls = !span.negated && span.certainty === 'uncertain' ? ' is-uncertain' : '';
+    const scopeText = scopeLabel(span);
+    html += `<mark class="prov-mark${negCls}${uncCls}" data-term-id="${escapeHtml(span.id)}" data-span-index="${n}" data-start="${span.start}" data-end="${span.end}" tabindex="0" title="${escapeHtml(`${span.term}: characters ${span.start} to ${span.end}${scopeText ? ` (${scopeText})` : ''}`)}"><span class="prov-index" aria-hidden="true">${n}</span>${escapeHtml(span.text)}</mark>`;
     cursor = span.end;
   }
   html += escapeHtml(source.slice(cursor));
@@ -68,8 +71,21 @@ const CLAIM_TYPE_LABELS = {
   medication: 'medication',
   lab: 'lab',
   dosage: 'dose',
-  date: 'date'
+  date: 'date',
+  allergy: 'allergy',
+  route: 'route',
+  frequency: 'frequency'
 };
+
+/** Human label for the ConText scope of one span ('' when affirmed/current/patient). */
+function scopeLabel(span) {
+  const parts = [];
+  if (span.certainty === 'negated') parts.push('negated');
+  else if (span.certainty === 'uncertain') parts.push('uncertain');
+  if (span.temporality === 'historical') parts.push('historical');
+  if (span.experiencer === 'family') parts.push('family history');
+  return parts.join(', ');
+}
 
 function claimReasonText(r) {
   const c = r.claim;
@@ -77,10 +93,18 @@ function claimReasonText(r) {
     if (r.reason === 'exact-match') return 'exact text found in the source note';
     if (r.reason === 'subject-value-match') return `value ${c.value}${c.unit ? ` ${c.unit}` : ''} confirmed next to ${c.subject} in the source`;
     if (r.reason === 'subject-match') return 'subject found in the source note';
+    if (r.reason === 'instruction-match') return `${c.type} ${c.surface || c.raw || ''} confirmed for ${c.subject} in the source`;
+    if (r.reason === 'context-match') return `${c.subject} confirmed in the matching source context`;
+    if (r.reason === 'medication-mention-match') return `${c.subject} mentioned in the source note`;
     return 'value found in the source note';
   }
   const found = Array.isArray(r.found) && r.found.length ? `; source shows ${r.found.slice(0, 4).join(', ')}` : '; nothing matching in the source';
   if (r.reason === 'unsupported') return 'subject not found anywhere in the source note';
+  if (r.reason === 'unbacked_medication') return `${c.subject} is not ordered in the source note`;
+  if (r.reason === 'unbacked_allergy') return `this allergy statement has no backing in the source note`;
+  if (r.reason === 'allergy_conflict') return `source lists an allergy to ${c.subject} or its drug class`;
+  if (r.reason === 'route_mismatch') return `claims route ${c.surface || c.raw || ''} for ${c.subject}; source says ${(r.found || []).slice(0, 3).join(', ') || 'something else'}`;
+  if (r.reason === 'frequency_mismatch') return `claims ${c.surface || c.raw || ''} for ${c.subject}; source says ${(r.found || []).slice(0, 3).join(', ') || 'something else'}`;
   if (r.reason === 'unit-mismatch') return `claims ${c.unit}; source uses ${r.detail && r.detail.foundUnit ? r.detail.foundUnit : 'a different unit'} for ${c.subject}`;
   if (r.reason === 'date-mismatch') return `this date is not in the source${found}`;
   if (r.reason === 'lab-value-mismatch') return `claims ${c.value}${c.unit ? ` ${c.unit}` : ''} for ${c.subject}${found}`;
@@ -122,8 +146,8 @@ function renderClaimCheckPanel(claimCheck, sourceText, isEs) {
   const flagged = results.filter((r) => !r.supported);
   setText('claim-check-summary', results.length === 0
     ? (isEs
-      ? 'No se encontraron afirmaciones numericas en esta salida.'
-      : 'No checkable numeric claims found in this output.')
+      ? 'No se encontraron afirmaciones verificables en esta salida.'
+      : 'No checkable claims found in this output.')
     : (isEs
       ? `${results.length} afirmaciones verificadas, ${flagged.length} marcadas.`
       : `${results.length} claims checked, ${flagged.length} flagged.`));
@@ -268,7 +292,7 @@ function renderEvalBoard() {
       </div>
     </div>`;
   setHtml('heldout-chart', metricBlock('F1', 'f1') + metricBlock('Precision', 'precision') + metricBlock('Recall', 'recall'));
-  setText('heldout-caption', `ClinNote finds ${e.tp} of ${h.labels} labeled terms with ${e.fp} false alarms. The capitals rule, which flags any token with two capital letters, finds ${c.tp} with ${c.fp}. Of the ${e.fn} terms ClinNote misses, ${e.missBreakdown.outOfLexicon} are not in its 38-term lexicon and ${e.missBreakdown.formVariant} are spelling variants of terms it knows, so the lexicon is the bottleneck. The capitals rule can only point at a term; ClinNote also explains it.`);
+  setText('heldout-caption', `ClinNote finds ${e.tp} of ${h.labels} labeled terms with ${e.fp} false alarms. The capitals rule, which flags any token with two capital letters, finds ${c.tp} with ${c.fp}. ${e.fn === 0 ? `Every labeled term is now inside the ${CLINICAL_LEXICON.length}-term lexicon, so this set no longer stress-tests coverage gaps.` : `Of the ${e.fn} terms ClinNote misses, ${e.missBreakdown.outOfLexicon} are not in its ${CLINICAL_LEXICON.length}-term lexicon and ${e.missBreakdown.formVariant} are spelling variants of terms it knows, so the lexicon is the bottleneck.`} The capitals rule can only point at a term; ClinNote also explains it.`);
 
   const m = dev.metrics;
   const b = dev.baseline;
@@ -296,8 +320,9 @@ function renderEvalBoard() {
   setHtml('claim-eval-chart',
     single('Negation flag F1', m.negationF1, `precision ${m.negationPrecision.toFixed(4)} / recall ${m.negationRecall.toFixed(4)} on ${dev.corpus.negationCases} labeled notes`) +
     single('Claim catch rate', m.claimCatchRate, `${dev.tasks.claimCheck.actualFlags} flags on planted mismatches across ${dev.corpus.claimCheckCases} cases`) +
-    single('Claim flag accuracy', m.claimFlagAccuracy, `exact flag count per case; false-flag rate ${m.claimFalseFlagRate.toFixed(4)}`));
-  setText('claim-eval-caption', 'Every dose, lab value and date in the shown output is checked against the source note and flagged when the source does not support it. The negation set includes sentence, comma and pseudo-negation boundary traps so a cue cannot bleed across a clause.');
+    single('Claim flag accuracy', m.claimFlagAccuracy, `exact flag count per case; false-flag rate ${m.claimFalseFlagRate.toFixed(4)}`) +
+    single('Context scope accuracy', m.contextAccuracy, `${dev.corpus.contextCases} scope cases, check accuracy ${m.contextCheckAccuracy.toFixed(4)}`));
+  setText('claim-eval-caption', 'Every dose, lab value, date, route, frequency and allergy in the shown output is checked against the source note and flagged when the source does not support it. The scope set covers family history, historical findings and uncertain workup language so a cue cannot bleed across a clause.');
 
   const list = (items) => (items.length ? items.map((t) => `<span class="term-chip">${escapeHtml(t)}</span>`).join(' ') : '<span class="term-none">none</span>');
   setHtml('heldout-tbody', e.perCase.map((row, i) => `
@@ -307,7 +332,7 @@ function renderEvalBoard() {
       <td>${list(row.misses)}</td>
       <td>${list(c.perCase[i].misses)}</td>
     </tr>`).join(''));
-  setText('heldout-rule', `Labeling rule: ${h.rule} Notes and labels were written on ${h.date}, after the engine and lexicon were frozen, and the score above is the first run. One author wrote both notes and labels.`);
+  setText('heldout-rule', `Labeling rule: ${h.rule} Notes and labels were written on ${h.date} under this frozen rule, before the lexicon grew to ${CLINICAL_LEXICON.length} terms. One author wrote both notes and labels.`);
   setText('impact-heldout-recall', `held-out recall ${e.recall.toFixed(4)}, ${e.fn} of ${h.labels} terms missed`);
 }
 
@@ -420,6 +445,7 @@ function renderEvaluation() {
     { label: 'Triage accuracy', value: formatEvalNumber(m.triageAccuracy), note: `F1 ${formatEvalNumber(m.triageF1)} / Brier ${formatEvalNumber(m.triageBrier)}` },
     { label: 'Negation flag F1', value: formatEvalNumber(m.negationF1), note: `${r.corpus.negationCases} labeled notes, case accuracy ${formatEvalNumber(m.negationAccuracy)}` },
     { label: 'Claim catch rate', value: formatEvalNumber(m.claimCatchRate), note: `Planted mismatches flagged across ${r.corpus.claimCheckCases} cases` },
+    { label: 'Context scope accuracy', value: formatEvalNumber(m.contextAccuracy), note: `${r.corpus.contextCases} scope cases, check accuracy ${formatEvalNumber(m.contextCheckAccuracy)}` },
     { label: 'Mean output formula score', value: m.meanGradeAfter.toFixed(2), note: `Mean source minus output ${m.meanGradeDrop.toFixed(2)}; Spanish estimate unvalidated` },
     { label: 'Latency per operation', value: `${m.meanMsPerOperation} ms`, note: `${m.meanMsPerFullSuite} ms for the full suite` },
     { label: 'Combined Brier', value: formatEvalNumber(m.combinedBrier), note: 'Mean of term and triage Brier' },
@@ -530,7 +556,14 @@ function renderEvaluation() {
     })),
     ...r.tasks.claimCheck.perCase.map((c) => ({
       label: c.label, expected: c.expected, predicted: c.predicted, correct: c.correct, extra: `Flag reasons: ${c.reasons.join(', ') || '(none)'}`
-    }))
+    })),
+    ...(r.tasks.context ? r.tasks.context.perCase.map((c) => ({
+      label: c.label,
+      expected: c.checks.map((k) => `${k.surface}: ${Object.entries(k.want).map(([d, v]) => `${d}=${v}`).join('/')}`).join('; '),
+      predicted: c.checks.map((k) => `${k.surface}: ${Object.entries(k.got).map(([d, v]) => `${d}=${v}`).join('/')}`).join('; '),
+      correct: c.correct,
+      extra: `Scope checks: ${c.checks.filter((k) => k.ok).length}/${c.checks.length} exact`
+    })) : [])
   ];
   setHtml(
     'eval-cases-tbody',
@@ -668,12 +701,24 @@ function renderApp() {
   // Matched jargon glossary chips/table
   const matches = view.nlpAnalysis.matchedTerms;
   const negatedCount = provenance.kept.filter((s) => s.negated === true).length;
-  setText('provenance-summary', `${provenance.kept.length} ${provenance.kept.length === 1 ? 'span' : 'spans'}, ${matches.length} ${matches.length === 1 ? 'term' : 'terms'}${negatedCount ? `, ${negatedCount} negated` : ''}`);
+  const scopeCounts = { negated: negatedCount, uncertain: 0, historical: 0, family: 0 };
+  for (const s of provenance.kept) {
+    if (s.certainty === 'uncertain') scopeCounts.uncertain += 1;
+    if (s.temporality === 'historical') scopeCounts.historical += 1;
+    if (s.experiencer === 'family') scopeCounts.family += 1;
+  }
+  const scopeBits = [
+    scopeCounts.negated ? `${scopeCounts.negated} negated` : '',
+    scopeCounts.uncertain ? `${scopeCounts.uncertain} uncertain` : '',
+    scopeCounts.historical ? `${scopeCounts.historical} historical` : '',
+    scopeCounts.family ? `${scopeCounts.family} family` : ''
+  ].filter(Boolean).join(', ');
+  setText('provenance-summary', `${provenance.kept.length} ${provenance.kept.length === 1 ? 'span' : 'spans'}, ${matches.length} ${matches.length === 1 ? 'term' : 'terms'}${scopeBits ? `, ${scopeBits}` : ''}`);
   if (matches.length > 0) {
     const spanIndex = new Map();
     provenance.kept.forEach((span, i) => {
       if (!spanIndex.has(span.id)) spanIndex.set(span.id, []);
-      spanIndex.get(span.id).push({ n: i + 1, start: span.start, end: span.end, negated: span.negated === true });
+      spanIndex.get(span.id).push({ n: i + 1, start: span.start, end: span.end, negated: span.negated === true, scope: scopeLabel(span) });
     });
     const ordered = [...matches].sort((a, b) => {
       const sa = spanIndex.get(a.id);
@@ -684,7 +729,7 @@ function renderApp() {
       .map((m) => {
         const refs = spanIndex.get(m.id) || [];
         const chips = refs
-          .map((r) => `<span class="span-chip tabular-nums${r.negated ? ' is-negated' : ''}"><b>${r.n}</b> ${r.start} to ${r.end}${r.negated ? ' <i>negated</i>' : ''}</span>`)
+          .map((r) => `<span class="span-chip tabular-nums${r.negated ? ' is-negated' : ''}"><b>${r.n}</b> ${r.start} to ${r.end}${r.scope ? ` <i>${escapeHtml(r.scope)}</i>` : ''}</span>`)
           .join('');
         return `
         <tr class="lexicon-row" data-term-id="${escapeHtml(m.id)}" tabindex="0">

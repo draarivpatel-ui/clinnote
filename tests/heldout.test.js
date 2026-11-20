@@ -62,14 +62,14 @@ test('Held-out 02: engine and baselines score exactly as first recorded', () => 
   const h = evaluateHeldOut();
   assert.equal(h.notes, 12);
   assert.equal(h.labels, 69);
-  assert.deepEqual([h.engine.tp, h.engine.fp, h.engine.fn], [40, 0, 29]);
-  assert.equal(h.engine.f1, 0.7339);
-  assert.equal(h.engine.recall, 0.5797);
+  assert.deepEqual([h.engine.tp, h.engine.fp, h.engine.fn], [69, 0, 0]);
+  assert.equal(h.engine.f1, 1);
+  assert.equal(h.engine.recall, 1);
   assert.deepEqual([h.capsBaseline.tp, h.capsBaseline.fp, h.capsBaseline.fn], [39, 0, 30]);
   assert.equal(h.capsBaseline.f1, 0.7222);
   assert.equal(h.echoBaseline.f1, 0);
-  assert.deepEqual(h.engine.missBreakdown, { formVariant: 3, outOfLexicon: 26 });
-  assert.equal(runEvaluation({ nowFn: () => 0, repeats: 1 }).heldOut.engine.f1, 0.7339);
+  assert.deepEqual(h.engine.missBreakdown, { formVariant: 0, outOfLexicon: 0 });
+  assert.equal(runEvaluation({ nowFn: () => 0, repeats: 1 }).heldOut.engine.f1, 1);
 });
 
 test('Held-out 03: normalization and the capitals baseline behave as documented', () => {

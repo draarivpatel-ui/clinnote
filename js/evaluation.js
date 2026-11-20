@@ -33,7 +33,7 @@ import {
   verifyClaim
 } from './clinnote-engine.js';
 
-export const EVAL_VERSION = '2.0.0';
+export const EVAL_VERSION = '3.0.0';
 export const EVAL_DATE = '2026-11-19';
 
 /**
@@ -52,22 +52,21 @@ export const GROUND_TRUTH_CASES = [
     id: 'case-t2d-renal',
     label: 'Type 2 diabetes renal titration sig',
     text: 'Metformin ER 500 mg PO BID with meals. Lisinopril 10 mg PO QD. eGFR 52 mL/min/1.73m2. HbA1c 7.8%. Avoid NSAIDs due to nephrotoxicity. Watch for orthostatic hypotension.',
-    expectedTerms: ['PO', 'BID', 'QD', 'eGFR', 'HbA1c', 'nephrotoxicity', 'orthostatic-hypotension'],
+    expectedTerms: ['PO', 'BID', 'QD', 'eGFR', 'HbA1c', 'nephrotoxicity', 'orthostatic-hypotension', 'nsaids'],
     unexpectedTerms: ['q4h', 'PRN', 'q12h']
   },
   {
     id: 'case-postop-anticoag',
     label: 'Post-op anticoagulation sig',
     text: 'Apixaban 2.5 mg PO BID q12h. Acetaminophen 650 mg PO q6h PRN pain. Oxycodone 5 mg PO q8h PRN severe pain. Return for melena or hematuria.',
-    expectedTerms: ['PO', 'BID', 'q12h', 'q6h', 'PRN', 'q8h', 'melena'],
-    unexpectedTerms: ['QD', 'QAM', 'eGFR'],
-    outOfScopeExpected: ['hematuria']
+    expectedTerms: ['PO', 'BID', 'q12h', 'q6h', 'PRN', 'q8h', 'melena', 'hematuria'],
+    unexpectedTerms: ['QD', 'QAM', 'eGFR']
   },
   {
     id: 'case-thyroid-fasting',
     label: 'Fasting thyroid replacement sig',
     text: 'Levothyroxine 75 mcg PO QAM 60m AC on empty stomach. Amlodipine 5 mg PO QD. Calcium 600 mg PO BID. Check TSH and tachycardia.',
-    expectedTerms: ['PO', 'QAM', 'AC', 'QD', 'BID'],
+    expectedTerms: ['PO', 'QAM', 'AC', 'QD', 'BID', 'tsh'],
     unexpectedTerms: ['q4h', 'PRN', 'HbA1c']
   },
   {
@@ -108,15 +107,15 @@ export const GROUND_TRUTH_CASES = [
   },
   {
     id: 'case-out-of-lexicon',
-    label: 'Dosing sig with clinically expected terms outside the 38-term lexicon',
-    text: 'Give 1 tablet SL q3h PRN. Keep NPO after midnight. Watch for hematuria and epistaxis.',
-    // A clinical reader would also mark SL (sublingual), q3h (every 3 hours) and
-    // hematuria. None of those three are in the frozen lexicon, so the engine cannot
-    // report them. They are counted as recall misses rather than silently dropped,
-    // which keeps the headline F1 honest and below 1.0.
-    expectedTerms: ['PRN', 'NPO', 'epistaxis'],
+    label: 'Dosing sig with clinically expected terms outside the lexicon',
+    text: 'Give 1 tablet SL q3h PRN. Keep NPO after midnight. Watch for hematuria and epistaxis. Telemetry overnight; exam WNL.',
+    // Wave 3 coverage closed the SL, q3h and hematuria gaps, so they moved into
+    // expectedTerms. A clinical reader would still mark telemetry (cardiac
+    // monitoring) and WNL (within normal limits); neither is in the lexicon, so
+    // they stay counted as recall misses and keep headline F1 below 1.0.
+    expectedTerms: ['PRN', 'NPO', 'epistaxis', 'sl-route', 'qh-interval', 'hematuria'],
     unexpectedTerms: ['BID', 'q12h'],
-    outOfScopeExpected: ['SL', 'q3h', 'hematuria']
+    outOfScopeExpected: ['telemetry', 'WNL']
   }
 ];
 
@@ -296,7 +295,8 @@ export const GROUND_TRUTH_CLAIM_CHECKS = [
     label: 'Drug named in output is absent from source',
     source: 'Apixaban 2.5 mg PO BID.',
     generated: 'Take Warfarin 5 mg daily.',
-    expectedFlagged: 1
+    // Wave 3: the invented drug and its invented schedule each flag separately.
+    expectedFlagged: 2
   },
   {
     id: 'cc-date-drift',
@@ -331,7 +331,8 @@ export const GROUND_TRUTH_CLAIM_CHECKS = [
     label: 'Dose invented with no source value at all',
     source: 'Monitor RR and work of breathing.',
     generated: 'Give 90 mcg every 6 hours.',
-    expectedFlagged: 1
+    // Wave 3: the invented dose claim and the invented schedule each flag.
+    expectedFlagged: 2
   },
   {
     id: 'cc-multi-mixed',
@@ -339,6 +340,153 @@ export const GROUND_TRUTH_CLAIM_CHECKS = [
     source: 'Albuterol 90 mcg MDI 2 puffs q4h. Prednisone 20 mg PO QD.',
     generated: 'Use Albuterol 90 mcg and take Prednisone 40 mg daily.',
     expectedFlagged: 1
+  },
+  {
+    id: 'cc3-route-iv',
+    label: 'Route drift: source says oral, draft says IV',
+    source: 'Metoprolol 25 mg PO BID.',
+    generated: 'Take Metoprolol 25 mg IV twice daily.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc3-freq-tid',
+    label: 'Frequency drift: source says daily, draft says three times daily',
+    source: 'Lisinopril 10 mg PO QD.',
+    generated: 'Take Lisinopril 10 mg three times daily.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc3-allergy-pcn',
+    label: 'Draft prescribes a listed allergen',
+    source: 'Allergic to penicillin. Lisinopril 10 mg PO QD.',
+    generated: 'Take Penicillin 500 mg twice daily.',
+    expectedFlagged: 2
+  },
+  {
+    id: 'cc3-allergy-class',
+    label: 'Cross-reactive class: penicillin allergy versus amoxicillin',
+    source: 'Allergic to penicillin.',
+    generated: 'Start Amoxicillin 500 mg three times a day.',
+    expectedFlagged: 2
+  },
+  {
+    id: 'cc3-allergy-clean',
+    label: 'Allergy restated and an unrelated order, both backed',
+    source: 'Allergic to sulfa. Apixaban 5 mg PO BID.',
+    generated: 'Allergic to sulfa. Take Apixaban 5 mg by mouth twice a day.',
+    expectedFlagged: 0
+  },
+  {
+    id: 'cc3-unbacked-med',
+    label: 'Dose-less drug mention with no source backing',
+    source: 'Metformin 500 mg PO BID.',
+    generated: 'Take Metformin 500 mg and Warfarin daily.',
+    expectedFlagged: 2
+  },
+  {
+    id: 'cc3-avoid-consistent',
+    label: 'Avoid instruction that matches the source contraindication',
+    source: 'NSAIDs such as Ibuprofen or Naproxen are strictly contraindicated.',
+    generated: 'Do not take ibuprofen or naproxen.',
+    expectedFlagged: 0
+  },
+  {
+    id: 'cc3-nkda-conflict',
+    label: 'Draft asserts an allergy where the source says NKDA',
+    source: 'NKDA. Apixaban 5 mg PO BID.',
+    generated: 'Patient is allergic to penicillin. Take Apixaban 5 mg by mouth twice daily.',
+    expectedFlagged: 1
+  },
+  {
+    id: 'cc3-family-unbacked',
+    label: 'Family history mention cannot back a new drug',
+    source: 'Mother had diabetes. Lisinopril 10 mg PO QD.',
+    generated: 'Take Lisinopril 10 mg daily. Start insulin.',
+    expectedFlagged: 1
+  }
+];
+
+/**
+ * Labeled ConText-style scope cases (engine v3.0.0). Each `expect` entry maps a
+ * span surface (lowercase) to the scope dimensions locateJargonSpans must
+ * report: certainty (affirmed/negated/uncertain), temporality
+ * (current/historical), experiencer (patient/family).
+ */
+export const GROUND_TRUTH_CONTEXT = [
+  {
+    id: 'ctx-family-list',
+    label: 'Family history does not become the patient diagnosis',
+    text: 'Family history of MI and early CAD.',
+    expect: { mi: { experiencer: 'family' }, cad: { experiencer: 'family' } }
+  },
+  {
+    id: 'ctx-relatives',
+    label: 'Relatives are family experiencers',
+    text: 'Mother had DM; father with HTN.',
+    expect: { dm: { experiencer: 'family' }, htn: { experiencer: 'family' } }
+  },
+  {
+    id: 'ctx-historical',
+    label: 'History-of marks past illness, not the current problem',
+    text: 'H/o DVT in 2019; no events since.',
+    expect: { dvt: { temporality: 'historical', experiencer: 'patient' } }
+  },
+  {
+    id: 'ctx-remote',
+    label: 'Remote history is historical',
+    text: 'Remote history of PE.',
+    expect: { pe: { temporality: 'historical' } }
+  },
+  {
+    id: 'ctx-possible',
+    label: 'Possible and evaluate-for are uncertain',
+    text: 'Possible PE on admission; evaluate for DVT.',
+    expect: { pe: { certainty: 'uncertain' }, dvt: { certainty: 'uncertain' } }
+  },
+  {
+    id: 'ctx-ruleout',
+    label: 'R/o is a workup, not a diagnosis',
+    text: 'R/o MI after abnormal EKG.',
+    expect: { mi: { certainty: 'uncertain' } }
+  },
+  {
+    id: 'ctx-family-negated',
+    label: 'Family history can itself be negated',
+    text: 'No family history of DVT. Father denies CAD.',
+    expect: {
+      dvt: { certainty: 'negated', experiencer: 'family' },
+      cad: { certainty: 'negated', experiencer: 'family' }
+    }
+  },
+  {
+    id: 'ctx-patient-affirmed',
+    label: 'Patient-reported findings stay affirmed',
+    text: 'Patient reports SOB and CP on exertion.',
+    expect: {
+      sob: { certainty: 'affirmed', experiencer: 'patient', temporality: 'current' },
+      cp: { certainty: 'affirmed', experiencer: 'patient' }
+    }
+  },
+  {
+    id: 'ctx-monitor',
+    label: 'Conditional instructions are not findings',
+    text: 'Monitor for dyspnea and melena.',
+    expect: { dyspnea: { certainty: 'uncertain', experiencer: 'patient' }, melena: { certainty: 'uncertain' } }
+  },
+  {
+    id: 'ctx-boundary',
+    label: 'Scope stops at the sentence boundary',
+    text: 'Family history of CAD. Current DVT on ultrasound.',
+    expect: {
+      cad: { experiencer: 'family' },
+      dvt: { experiencer: 'patient', certainty: 'affirmed', temporality: 'current' }
+    }
+  },
+  {
+    id: 'ctx-prior-uncertain',
+    label: 'Historical and uncertain are independent dimensions',
+    text: 'Prior MI, rule out recurrence.',
+    expect: { mi: { temporality: 'historical', certainty: 'uncertain' } }
   }
 ];
 
@@ -362,11 +510,11 @@ export const FAILURE_CONDITIONS = [
   {
     id: 'fail-unlisted-term',
     title: 'Unlisted abbreviations are missed',
-    detail: 'Only the 38 lexicon entries are recognized. Any abbreviation outside the lexicon passes through untouched.',
+    detail: 'Only the lexicon entries are recognized. Any abbreviation outside the lexicon passes through untouched, and the held-out suite still finds real misses.',
     mitigation: 'The glossary shows exactly which terms were detected. Unlisted terms remain visible in the source note.',
     probe: () => {
-      const r = detectJargonMatches('Give 1 tab SL q3h while NPO.', 'en');
-      return { triggered: !r.some((m) => m.id === 'SL'), observed: r.map((m) => m.id) };
+      const r = detectJargonMatches('Keep on telemetry overnight; exam WNL.', 'en');
+      return { triggered: !r.some((m) => m.id === 'telemetry' || m.id === 'WNL'), observed: r.map((m) => m.id) };
     },
     expectedTriggered: true
   },
@@ -460,7 +608,7 @@ export const FAILURE_CONDITIONS = [
   {
     id: 'fail-claim-scope',
     title: 'Claim check covers extracted claims only',
-    detail: 'Only medication doses, lab values, standalone dosages, and dates are verified against the source. Advice, timing rules, and narrative claims pass through unchecked.',
+    detail: 'Medication doses and dose-less mentions, routes, frequencies, lab values, standalone dosages, dates, and allergy assertions are verified against the source. General advice, narrative claims, and instructions phrased outside the route/frequency vocabulary still pass through unchecked.',
     mitigation: 'The claim panel lists exactly which claims were checked and what each was compared against, so nothing unverified is presented as verified. A clinician must confirm the rest.',
     probe: () => {
       const r = verifyClaim({ type: 'narrative', subject: null, value: null, raw: 'the regimen is safe for you' }, 'Apixaban 2.5 mg PO BID.');
@@ -723,6 +871,43 @@ export function evaluateClaimVerification() {
     catchRate: safeDivide(caught, expectedFlags),
     flagAccuracy: safeDivide(perCase.filter((c) => c.correct).length, perCase.length),
     falseFlagRate: safeDivide(extraFlags, totalClaims),
+    perCase
+  };
+}
+
+/**
+ * ConText-style scope task (engine v3.0.0): every expected span surface must
+ * carry the authored certainty, temporality and experiencer. Case accuracy is
+ * all-or-nothing; check accuracy scores each labeled dimension separately.
+ */
+export function evaluateContext() {
+  const perCase = GROUND_TRUTH_CONTEXT.map((c) => {
+    const spans = locateJargonSpans(c.text);
+    const checks = Object.entries(c.expect).map(([surface, want]) => {
+      const span = spans.find((s) => s.text.toLowerCase() === surface.toLowerCase());
+      const got = span
+        ? { certainty: span.certainty, temporality: span.temporality, experiencer: span.experiencer }
+        : null;
+      const dims = Object.keys(want);
+      const ok = got !== null && dims.every((d) => got[d] === want[d]);
+      return { surface, want, got, ok };
+    });
+    return {
+      id: c.id,
+      label: c.label,
+      checks,
+      correct: checks.every((x) => x.ok),
+      missCount: checks.filter((x) => !x.ok).length
+    };
+  });
+  const totalChecks = perCase.reduce((n, c) => n + c.checks.length, 0);
+  const passed = perCase.reduce((n, c) => n + c.checks.filter((x) => x.ok).length, 0);
+  return {
+    task: 'Clinical scope (certainty, temporality, experiencer)',
+    n: GROUND_TRUTH_CONTEXT.length,
+    checks: totalChecks,
+    checkAccuracy: safeDivide(passed, totalChecks),
+    accuracy: safeDivide(perCase.filter((c) => c.correct).length, perCase.length),
     perCase
   };
 }
@@ -992,6 +1177,7 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
   const triage = evaluateTriage();
   const negation = evaluateNegation();
   const claimCheck = evaluateClaimVerification();
+  const context = evaluateContext();
   const readability = evaluateReadability();
   const latency = measureLatency(nowFn, repeats);
   const failureModes = evaluateFailureModes();
@@ -1008,6 +1194,7 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       triageCases: GROUND_TRUTH_TRIAGE.length,
       negationCases: GROUND_TRUTH_NEGATION.length,
       claimCheckCases: GROUND_TRUTH_CLAIM_CHECKS.length,
+      contextCases: GROUND_TRUTH_CONTEXT.length,
       readabilityRows: readability.n,
       lexiconEntries: CLINICAL_LEXICON.length,
       otcAddons: OTC_ADDONS.length,
@@ -1031,6 +1218,8 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       claimCatchRate: Number(claimCheck.catchRate.toFixed(4)),
       claimFlagAccuracy: Number(claimCheck.flagAccuracy.toFixed(4)),
       claimFalseFlagRate: Number(claimCheck.falseFlagRate.toFixed(4)),
+      contextAccuracy: Number(context.accuracy.toFixed(4)),
+      contextCheckAccuracy: Number(context.checkAccuracy.toFixed(4)),
       combinedBrier,
       meanGradeAfter: readability.meanGradeAfter,
       meanGradeDrop: readability.meanGradeDrop,
@@ -1046,7 +1235,7 @@ export function runEvaluation({ nowFn, repeats = 40 } = {}) {
       latencyVsBaseline: 'Baseline does no work (0 ms). The measured cost is the full rules suite, paid once per interaction in the browser.',
       cost: 'Zero network requests, zero API spend, zero server cost. All computation runs client-side.'
     },
-    tasks: { term, collision, triage, negation, claimCheck, readability, latency },
+    tasks: { term, collision, triage, negation, claimCheck, context, readability, latency },
     heldOut,
     failureModes,
     disclaimers: DISCLAIMERS
@@ -1065,6 +1254,7 @@ export function formatCliReport(report) {
     `Triage: accuracy ${m.triageAccuracy} F1 ${m.triageF1} Brier ${m.triageBrier}`,
     `Negation flags: P ${m.negationPrecision} R ${m.negationRecall} F1 ${m.negationF1} case accuracy ${m.negationAccuracy}`,
     `Claim check: catch rate ${m.claimCatchRate} flag accuracy ${m.claimFlagAccuracy} false-flag rate ${m.claimFalseFlagRate}`,
+    `Scope check: case accuracy ${m.contextAccuracy} check accuracy ${m.contextCheckAccuracy}`,
     `Readability: mean grade after ${m.meanGradeAfter}, mean drop ${m.meanGradeDrop}`,
     `Latency: ${m.meanMsPerOperation} ms/operation, ${m.meanMsPerFullSuite} ms/full suite`,
     '',

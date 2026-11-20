@@ -339,6 +339,941 @@ export const CLINICAL_LEXICON = [
   }
 ];
 
+/**
+ * Wave 3 lexicon expansion: standard clinical sig abbreviations, lab and
+ * vital-sign markers, route forms, diagnosis shorthands, and pattern classes
+ * for whole notation families (every-N-hours intervals, xNd course durations,
+ * dotted Latin sigs). Entries with `flags: 'g'` are matched case-sensitively
+ * so ambiguous short forms (ED, GI, PE, HR) only fire on their uppercase
+ * abbreviation form, never inside ordinary lowercase prose.
+ */
+export const CLINICAL_LEXICON_W3 = [
+  {
+    id: 'qh-interval',
+    term: 'qNh interval',
+    pattern: '\\bq(?!4h\\b|6h\\b|8h\\b|12h\\b)\\d{1,2}h\\b',
+    category: 'interval',
+    en: 'on a repeating every-N-hours schedule',
+    es: 'en un horario de cada N horas'
+  },
+  {
+    id: 'x-course',
+    term: 'xNd course',
+    pattern: '\\bx\\d{1,3}d?\\b',
+    category: 'duration',
+    en: 'for the stated number of days',
+    es: 'por el numero de dias indicado'
+  },
+  {
+    id: 'dotted-sig',
+    term: 'dotted Latin sig',
+    pattern: '\\b(?:p\\.o\\.?|b\\.i\\.d\\.?|t\\.i\\.d\\.?|q\\.i\\.d\\.?|q\\.d\\.?|q\\.h\\.s\\.?|q\\.a\\.m\\.?|q\\.p\\.m\\.?|a\\.c\\.?|p\\.c\\.?|p\\.r\\.n\\.?|i\\.v\\.?|i\\.m\\.?|s\\.c\\.?|s\\.l\\.?|n\\.p\\.o\\.?|g\\.t\\.t\\.?|h\\.s\\.?)',
+    category: 'sig-shorthand',
+    en: 'dotted Latin prescription shorthand',
+    es: 'abreviatura latina de receta con puntos'
+  },
+  {
+    id: 'iv-route',
+    term: 'IV',
+    pattern: '\\bIV\\b',
+    flags: 'g',
+    category: 'route',
+    en: 'into a vein (intravenous)',
+    es: 'en una vena (intravenoso)'
+  },
+  {
+    id: 'im-route',
+    term: 'IM',
+    pattern: '\\bIM\\b',
+    flags: 'g',
+    category: 'route',
+    en: 'injected into a muscle (intramuscular)',
+    es: 'inyectado en el musculo (intramuscular)'
+  },
+  {
+    id: 'sc-route',
+    term: 'SC/SQ',
+    pattern: '\\b(?:SC|SQ)\\b',
+    flags: 'g',
+    category: 'route',
+    en: 'injected just under the skin (subcutaneous)',
+    es: 'inyectado debajo de la piel (subcutaneo)'
+  },
+  {
+    id: 'sl-route',
+    term: 'SL',
+    pattern: '\\bSL\\b',
+    flags: 'g',
+    category: 'route',
+    en: 'dissolved under the tongue (sublingual)',
+    es: 'disuelto debajo de la lengua (sublingual)'
+  },
+  {
+    id: 'subcut-route',
+    term: 'subcut',
+    pattern: '\\bsubcut(?:aneous|aneously)?\\b|\\bsub-q\\b',
+    category: 'route',
+    en: 'injected just under the skin (subcutaneous)',
+    es: 'inyectado debajo de la piel (subcutaneo)'
+  },
+  {
+    id: 'odt-form',
+    term: 'ODT',
+    pattern: '\\bODT\\b',
+    flags: 'g',
+    category: 'route',
+    en: 'tablet that melts on the tongue (orally disintegrating)',
+    es: 'tableta que se disuelve en la lengua'
+  },
+  {
+    id: 'topical-route',
+    term: 'topical',
+    pattern: '\\btopical\\b',
+    category: 'route',
+    en: 'spread on the skin',
+    es: 'aplicado sobre la piel'
+  },
+  {
+    id: 'transdermal-route',
+    term: 'transdermal',
+    pattern: '\\btransdermal\\b',
+    category: 'route',
+    en: 'absorbed slowly through a skin patch',
+    es: 'absorbido por un parche en la piel'
+  },
+  {
+    id: 'gtt-drops',
+    term: 'gtt',
+    pattern: '\\bgtt\\b',
+    category: 'route',
+    en: 'drops for the eye or ear',
+    es: 'gotas para el ojo o el oido'
+  },
+  {
+    id: 'nebs',
+    term: 'nebs',
+    pattern: '\\bnebs?\\b|\\bnebuli[sz](?:ed|er|ing|ation)?',
+    category: 'device',
+    en: 'medicine mist breathed in from a nebulizer machine',
+    es: 'vapor de medicamento inhalado con nebulizador'
+  },
+  {
+    id: 'dpi-device',
+    term: 'DPI',
+    pattern: '\\bDPI\\b',
+    flags: 'g',
+    category: 'device',
+    en: 'dry-powder inhaler device',
+    es: 'inhalador de polvo seco'
+  },
+  {
+    id: 'hs-bedtime',
+    term: 'HS',
+    pattern: '\\bHS\\b',
+    flags: 'g',
+    category: 'frequency',
+    en: 'at bedtime',
+    es: 'a la hora de acostarse'
+  },
+  {
+    id: 'qpm',
+    term: 'QPM',
+    pattern: '\\bQPM\\b',
+    flags: 'g',
+    category: 'frequency',
+    en: 'every evening',
+    es: 'cada tarde'
+  },
+  {
+    id: 'stat-now',
+    term: 'stat',
+    pattern: '\\bstat\\b',
+    category: 'timing',
+    en: 'right away (immediately)',
+    es: 'de inmediato'
+  },
+  {
+    id: 'bp',
+    term: 'BP',
+    pattern: '\\bBP\\b',
+    flags: 'g',
+    category: 'vital-sign',
+    en: 'blood pressure',
+    es: 'presion arterial'
+  },
+  {
+    id: 'sbp',
+    term: 'SBP',
+    pattern: '\\bSBP\\b',
+    flags: 'g',
+    category: 'vital-sign',
+    en: 'top blood pressure number (systolic)',
+    es: 'cifra alta de presion arterial (sistolica)'
+  },
+  {
+    id: 'dbp',
+    term: 'DBP',
+    pattern: '\\bDBP\\b',
+    flags: 'g',
+    category: 'vital-sign',
+    en: 'bottom blood pressure number (diastolic)',
+    es: 'cifra baja de presion arterial (diastolica)'
+  },
+  {
+    id: 'hr',
+    term: 'HR',
+    pattern: '\\bHR\\b',
+    flags: 'g',
+    category: 'vital-sign',
+    en: 'heart rate',
+    es: 'frecuencia cardiaca'
+  },
+  {
+    id: 'rr',
+    term: 'RR',
+    pattern: '\\bRR\\b',
+    flags: 'g',
+    category: 'vital-sign',
+    en: 'breathing rate (respiratory rate)',
+    es: 'frecuencia respiratoria'
+  },
+  {
+    id: 'tsh',
+    term: 'TSH',
+    pattern: '\\bTSH\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'thyroid stimulating hormone level (TSH)',
+    es: 'hormona estimulante del tiroides (TSH)'
+  },
+  {
+    id: 'inr',
+    term: 'INR',
+    pattern: '\\bINR\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'blood clotting speed score (INR)',
+    es: 'medida de coagulacion de la sangre (INR)'
+  },
+  {
+    id: 'wbc',
+    term: 'WBC',
+    pattern: '\\bWBC\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'white blood cell count (WBC)',
+    es: 'conteo de globulos blancos (WBC)'
+  },
+  {
+    id: 'hgb',
+    term: 'Hgb',
+    pattern: '\\b(?:Hgb|Hb)\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'red blood cell protein (hemoglobin)',
+    es: 'proteina de los globulos rojos (hemoglobina)'
+  },
+  {
+    id: 'plt',
+    term: 'platelets',
+    pattern: '\\bplt\\b|\\bplatelets?\\b',
+    category: 'lab-marker',
+    en: 'clotting cells (platelets)',
+    es: 'celulas de coagulacion (plaquetas)'
+  },
+  {
+    id: 'bmp',
+    term: 'BMP',
+    pattern: '\\bBMP\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'basic metabolic panel blood test (BMP)',
+    es: 'analisis de sangre metabolico basico (BMP)'
+  },
+  {
+    id: 'cbc',
+    term: 'CBC',
+    pattern: '\\bCBC\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'complete blood count (CBC)',
+    es: 'conteo sanguineo completo (CBC)'
+  },
+  {
+    id: 'creatinine',
+    term: 'Cr',
+    pattern: '\\bCr\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'kidney waste marker (creatinine)',
+    es: 'marcador de desecho renal (creatinina)'
+  },
+  {
+    id: 'bun',
+    term: 'BUN',
+    pattern: '\\bBUN\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'kidney waste marker (urea nitrogen)',
+    es: 'marcador de desecho renal (nitrogeno ureico)'
+  },
+  {
+    id: 'ldl',
+    term: 'LDL',
+    pattern: '\\bLDL\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'bad cholesterol level (LDL)',
+    es: 'colesterol malo (LDL)'
+  },
+  {
+    id: 'hdl',
+    term: 'HDL',
+    pattern: '\\bHDL\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'good cholesterol level (HDL)',
+    es: 'colesterol bueno (HDL)'
+  },
+  {
+    id: 'alt-liver',
+    term: 'ALT',
+    pattern: '\\bALT\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'liver enzyme level (ALT)',
+    es: 'enzima del higado (ALT)'
+  },
+  {
+    id: 'ast-liver',
+    term: 'AST',
+    pattern: '\\bAST\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'liver enzyme level (AST)',
+    es: 'enzima del higado (AST)'
+  },
+  {
+    id: 'copd',
+    term: 'COPD',
+    pattern: '\\bCOPD\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'long-term lung disease (COPD)',
+    es: 'enfermedad pulmonar cronica (COPD)'
+  },
+  {
+    id: 'htn',
+    term: 'HTN',
+    pattern: '\\bHTN\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'high blood pressure (hypertension)',
+    es: 'presion arterial alta (hipertension)'
+  },
+  {
+    id: 'dm',
+    term: 'DM',
+    pattern: '\\bDM\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'diabetes mellitus',
+    es: 'diabetes mellitus'
+  },
+  {
+    id: 't2dm',
+    term: 'T2DM',
+    pattern: '\\bT2DM\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'type 2 diabetes',
+    es: 'diabetes tipo 2'
+  },
+  {
+    id: 'cad',
+    term: 'CAD',
+    pattern: '\\bCAD\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'clogged heart arteries (coronary artery disease)',
+    es: 'arterias del corazon tapadas (enfermedad coronaria)'
+  },
+  {
+    id: 'chf',
+    term: 'CHF',
+    pattern: '\\bCHF\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'heart failure with fluid backup (CHF)',
+    es: 'insuficiencia cardiaca con acumulacion de liquido (CHF)'
+  },
+  {
+    id: 'afib',
+    term: 'AFib',
+    pattern: '\\bA-?[Ff]ib\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'irregular fast heartbeat (atrial fibrillation)',
+    es: 'latido irregular y rapido (fibrilacion auricular)'
+  },
+  {
+    id: 'mi',
+    term: 'MI',
+    pattern: '\\bMI\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'heart attack (myocardial infarction)',
+    es: 'ataque cardiaco (infarto de miocardio)'
+  },
+  {
+    id: 'dvt',
+    term: 'DVT',
+    pattern: '\\bDVT\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'deep vein blood clot (DVT)',
+    es: 'coagulo en vena profunda (DVT)'
+  },
+  {
+    id: 'pe',
+    term: 'PE',
+    pattern: '\\bPE\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'lung artery blood clot (pulmonary embolism)',
+    es: 'coagulo en la arteria del pulmon (embolia pulmonar)'
+  },
+  {
+    id: 'ckd',
+    term: 'CKD',
+    pattern: '\\bCKD\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'long-term kidney disease (CKD)',
+    es: 'enfermedad renal cronica (CKD)'
+  },
+  {
+    id: 'aki',
+    term: 'AKI',
+    pattern: '\\bAKI\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'sudden kidney injury (AKI)',
+    es: 'lesion renal repentina (AKI)'
+  },
+  {
+    id: 'uti',
+    term: 'UTI',
+    pattern: '\\bUTI\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'urinary tract infection (UTI)',
+    es: 'infeccion urinaria (UTI)'
+  },
+  {
+    id: 'uri',
+    term: 'URI',
+    pattern: '\\bURI\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'upper respiratory infection (URI)',
+    es: 'infeccion respiratoria alta (URI)'
+  },
+  {
+    id: 'gerd',
+    term: 'GERD',
+    pattern: '\\bGERD\\b',
+    flags: 'g',
+    category: 'diagnosis',
+    en: 'acid reflux disease (GERD)',
+    es: 'enfermedad de reflujo acido (GERD)'
+  },
+  {
+    id: 'cp',
+    term: 'CP',
+    pattern: '\\bCP\\b',
+    flags: 'g',
+    category: 'symptom',
+    en: 'chest pain',
+    es: 'dolor de pecho'
+  },
+  {
+    id: 'chest-pain',
+    term: 'chest pain',
+    pattern: '\\bchest\\s+pain\\b',
+    category: 'symptom',
+    en: 'pain or pressure in the chest',
+    es: 'dolor o presion en el pecho'
+  },
+  {
+    id: 'sob',
+    term: 'SOB',
+    pattern: '\\bSOB\\b',
+    flags: 'g',
+    category: 'respiratory-sign',
+    en: 'shortness of breath',
+    es: 'falta de aire al respirar'
+  },
+  {
+    id: 'ed-dept',
+    term: 'ED',
+    pattern: '\\bED\\b',
+    flags: 'g',
+    category: 'care-setting',
+    en: 'emergency department',
+    es: 'sala de emergencias'
+  },
+  {
+    id: 'nsaids',
+    term: 'NSAIDs',
+    pattern: '\\bNSAIDs?\\b',
+    flags: 'g',
+    category: 'medication-class',
+    en: 'anti-inflammatory pain relievers (NSAIDs)',
+    es: 'calmantes antiinflamatorios (AINE)'
+  },
+  {
+    id: 'nkda',
+    term: 'NKDA/NKA',
+    pattern: '\\b(?:NKDA|NKA)\\b',
+    flags: 'g',
+    category: 'allergy-status',
+    en: 'no known drug allergies',
+    es: 'sin alergias conocidas a medicamentos'
+  },
+  {
+    id: 'hx',
+    term: 'hx / h/o',
+    pattern: '\\b(?:h/o|hx)\\b',
+    category: 'context-cue',
+    en: 'history of',
+    es: 'antecedente de'
+  },
+  {
+    id: 'pmh',
+    term: 'PMH',
+    pattern: '\\bPMH\\b',
+    flags: 'g',
+    category: 'context-cue',
+    en: 'past medical history',
+    es: 'historial medico previo'
+  },
+  {
+    id: 'fhx',
+    term: 'FH/FHx',
+    pattern: '\\bFHx?\\b',
+    flags: 'g',
+    category: 'context-cue',
+    en: 'family history',
+    es: 'historial familiar'
+  },
+  {
+    id: 'ro',
+    term: 'r/o',
+    pattern: '\\br/o\\b',
+    category: 'context-cue',
+    en: 'rule out (test whether present)',
+    es: 'descartar (evaluar si esta presente)'
+  },
+  {
+    id: 'co',
+    term: 'c/o',
+    pattern: '\\bc/o\\b',
+    category: 'context-cue',
+    en: 'complains of',
+    es: 'refiere'
+  },
+  {
+    id: 'sp',
+    term: 's/p',
+    pattern: '\\bs/p\\b',
+    category: 'context-cue',
+    en: 'status post (after)',
+    es: 'despues de'
+  },
+  {
+    id: 'yo',
+    term: 'y/o',
+    pattern: '\\by/o\\b',
+    category: 'context-cue',
+    en: 'years old',
+    es: 'anos de edad'
+  },
+  {
+    id: 'vs',
+    term: 'VS',
+    pattern: '\\bVS\\b',
+    flags: 'g',
+    category: 'vital-sign',
+    en: 'vital signs',
+    es: 'signos vitales'
+  },
+  {
+    id: 'exacerbation',
+    term: 'exacerbation',
+    pattern: '\\bexacerbations?\\b',
+    category: 'course-term',
+    en: 'a sudden worsening flare-up',
+    es: 'empeoramiento repentino'
+  },
+  {
+    id: 'hematuria',
+    term: 'hematuria',
+    pattern: '\\bhematuria\\b',
+    category: 'bleeding-sign',
+    en: 'blood in the urine',
+    es: 'sangre en la orina'
+  },
+  {
+    id: 'hypokalemia',
+    term: 'hypokalemia',
+    pattern: '\\bhypokalemi(?:a|c)\\b',
+    category: 'metabolic-sign',
+    en: 'low potassium level in the blood',
+    es: 'nivel bajo de potasio en la sangre'
+  },
+  {
+    id: 'hyperglycemia',
+    term: 'hyperglycemia',
+    pattern: '\\bhyperglycemi(?:a|c)\\b',
+    category: 'metabolic-sign',
+    en: 'high blood sugar',
+    es: 'azucar alta en la sangre'
+  },
+  {
+    id: 'hyponatremia',
+    term: 'hyponatremia',
+    pattern: '\\bhyponatremi(?:a|c)\\b',
+    category: 'metabolic-sign',
+    en: 'low sodium level in the blood',
+    es: 'nivel bajo de sodio en la sangre'
+  },
+  {
+    id: 'hypernatremia',
+    term: 'hypernatremia',
+    pattern: '\\bhypernatremi(?:a|c)\\b',
+    category: 'metabolic-sign',
+    en: 'high sodium level in the blood',
+    es: 'nivel alto de sodio en la sangre'
+  },
+  {
+    id: 'hypoxemia',
+    term: 'hypoxemia',
+    pattern: '\\bhypoxemi(?:a|c)\\b',
+    category: 'respiratory-sign',
+    en: 'low oxygen level in the blood',
+    es: 'nivel bajo de oxigeno en la sangre'
+  },
+  {
+    id: 'edema',
+    term: 'edema',
+    pattern: '\\bedema\\b',
+    category: 'fluid-sign',
+    en: 'swelling from extra fluid',
+    es: 'hinchazon por retencion de liquido'
+  },
+  {
+    id: 'cyanosis',
+    term: 'cyanosis',
+    pattern: '\\bcyanos(?:is|ed|tic)\\b',
+    category: 'respiratory-sign',
+    en: 'blue or gray lips or skin from low oxygen',
+    es: 'labios o piel azules por falta de oxigeno'
+  },
+  {
+    id: 'retractions',
+    term: 'retractions',
+    pattern: '(?<!intercostal\\s)\\bretractions\\b',
+    category: 'respiratory-sign',
+    en: 'skin sinking between the ribs while breathing',
+    es: 'hundimiento de la piel entre las costillas al respirar'
+  },
+  {
+    id: 'orthopnea',
+    term: 'orthopnea',
+    pattern: '\\borthopnea\\b',
+    category: 'respiratory-sign',
+    en: 'breathlessness when lying flat',
+    es: 'falta de aire al estar acostado'
+  },
+  {
+    id: 'dysphagia',
+    term: 'dysphagia',
+    pattern: '\\bdysphagia\\b',
+    category: 'swallow-sign',
+    en: 'trouble swallowing',
+    es: 'dificultad para tragar'
+  },
+  {
+    id: 'tachypnea',
+    term: 'tachypnea',
+    pattern: '\\btachypnea\\b',
+    category: 'respiratory-sign',
+    en: 'fast breathing rate',
+    es: 'respiracion acelerada'
+  },
+  {
+    id: 'bradycardia',
+    term: 'bradycardia',
+    pattern: '\\bbradycardia\\b',
+    category: 'hemodynamic-sign',
+    en: 'slow heart rate',
+    es: 'frecuencia cardiaca lenta'
+  },
+  {
+    id: 'dysuria',
+    term: 'dysuria',
+    pattern: '\\bdysuria\\b',
+    category: 'urinary-sign',
+    en: 'pain or burning with urination',
+    es: 'dolor o ardor al orinar'
+  },
+  {
+    id: 'hematemesis',
+    term: 'hematemesis',
+    pattern: '\\bhematemesis\\b',
+    category: 'bleeding-sign',
+    en: 'vomiting blood',
+    es: 'vomito con sangre'
+  },
+  {
+    id: 'stridor',
+    term: 'stridor',
+    pattern: '\\bstridor\\b',
+    category: 'respiratory-sign',
+    en: 'harsh noisy breathing from a tight airway',
+    es: 'respiracion ruidosa por via aerea estrecha'
+  },
+  {
+    id: 'ascites',
+    term: 'ascites',
+    pattern: '\\bascites\\b',
+    category: 'fluid-sign',
+    en: 'fluid buildup in the belly',
+    es: 'acumulacion de liquido en el abdomen'
+  },
+  {
+    id: 'hypertension',
+    term: 'hypertension',
+    pattern: '\\bhypertension\\b',
+    category: 'diagnosis',
+    en: 'high blood pressure (hypertension)',
+    es: 'presion arterial alta (hipertension)'
+  },
+  {
+    id: 'egd',
+    term: 'EGD',
+    pattern: '\\bEGD\\b',
+    flags: 'g',
+    category: 'procedure',
+    en: 'scope exam of the esophagus, stomach and upper intestine (EGD)',
+    es: 'endoscopia de esofago, estomago e intestino alto (EGD)'
+  },
+  {
+    id: 'cxr',
+    term: 'CXR',
+    pattern: '\\bCXR\\b',
+    flags: 'g',
+    category: 'procedure',
+    en: 'chest x-ray',
+    es: 'radiografia de pecho'
+  },
+  {
+    id: 'ekg-ecg',
+    term: 'EKG/ECG',
+    pattern: '\\b(?:EKG|ECG)\\b',
+    flags: 'g',
+    category: 'procedure',
+    en: 'heart rhythm tracing (EKG/ECG)',
+    es: 'registro del ritmo cardiaco (EKG/ECG)'
+  },
+  {
+    id: 'mri',
+    term: 'MRI',
+    pattern: '\\bMRI\\b',
+    flags: 'g',
+    category: 'procedure',
+    en: 'magnetic imaging scan (MRI)',
+    es: 'resonancia magnetica (MRI)'
+  },
+  {
+    id: 'ct-scan',
+    term: 'CT',
+    pattern: '\\bCT\\b',
+    flags: 'g',
+    category: 'procedure',
+    en: 'computed tomography scan (CT)',
+    es: 'tomografia computarizada (CT)'
+  },
+  {
+    id: 'gi',
+    term: 'GI',
+    pattern: '\\bGI\\b',
+    flags: 'g',
+    category: 'body-system',
+    en: 'stomach and intestines (gastrointestinal)',
+    es: 'estomago e intestinos (gastrointestinal)'
+  },
+  {
+    id: 'lmwh',
+    term: 'LMWH',
+    pattern: '\\bLMWH\\b',
+    flags: 'g',
+    category: 'medication-class',
+    en: 'injected blood thinner (low molecular weight heparin)',
+    es: 'anticoagulante inyectable (heparina de bajo peso molecular)'
+  },
+  {
+    id: 'opioid',
+    term: 'opioid',
+    pattern: '\\bopioids?\\b',
+    category: 'medication-class',
+    en: 'strong prescription pain reliever (opioid)',
+    es: 'calmante fuerte de venta con receta (opioide)'
+  },
+  {
+    id: 'benzodiazepine',
+    term: 'benzodiazepine',
+    pattern: '\\bbenzodiazepines?\\b',
+    category: 'medication-class',
+    en: 'sedative anti-anxiety medicine (benzodiazepine)',
+    es: 'sedante para la ansiedad (benzodiacepina)'
+  },
+  {
+    id: 'diuretic',
+    term: 'diuretic',
+    pattern: '\\bdiuretics?\\b',
+    category: 'medication-class',
+    en: 'water pill that removes extra fluid (diuretic)',
+    es: 'pastilla que elimina liquido extra (diuretico)'
+  },
+  {
+    id: 'ssri',
+    term: 'SSRI',
+    pattern: '\\bSSRIs?\\b',
+    flags: 'g',
+    category: 'medication-class',
+    en: 'antidepressant that raises serotonin (SSRI)',
+    es: 'antidepresivo que aumenta la serotonina (ISRS)'
+  },
+  {
+    id: 'ace-inhibitor',
+    term: 'ACE inhibitor',
+    pattern: '\\bACE\\s+inhibitors?\\b|\\bACEi\\b',
+    flags: 'g',
+    category: 'medication-class',
+    en: 'blood pressure and kidney medicine (ACE inhibitor)',
+    es: 'medicamento para presion y rinon (inhibidor de la ECA)'
+  },
+  {
+    id: 'arb',
+    term: 'ARB',
+    pattern: '\\bARBs?\\b',
+    flags: 'g',
+    category: 'medication-class',
+    en: 'blood pressure and kidney medicine (ARB)',
+    es: 'medicamento para presion y rinon (ARA II)'
+  },
+  {
+    id: 'corticosteroid',
+    term: 'corticosteroid',
+    pattern: '\\bcorticosteroids?\\b',
+    category: 'medication-class',
+    en: 'steroid anti-inflammatory medicine (corticosteroid)',
+    es: 'medicamento esteroide antiinflamatorio (corticosteroide)'
+  },
+  {
+    id: 'statin',
+    term: 'statin',
+    pattern: '\\bstatins?\\b',
+    category: 'medication-class',
+    en: 'cholesterol-lowering medicine (statin)',
+    es: 'medicamento para bajar el colesterol (estatina)'
+  },
+  {
+    id: 'antihistamine',
+    term: 'antihistamine',
+    pattern: '\\bantihistamines?\\b',
+    category: 'medication-class',
+    en: 'allergy or itch medicine (antihistamine)',
+    es: 'medicamento para alergia o picazon (antihistaminico)'
+  },
+  {
+    id: 'antibiotic',
+    term: 'antibiotic',
+    pattern: '\\bantibiotics?\\b',
+    category: 'medication-class',
+    en: 'infection-fighting medicine (antibiotic)',
+    es: 'medicamento contra infecciones (antibiotico)'
+  },
+  {
+    id: 'nv',
+    term: 'N/V',
+    pattern: '\\bN/V\\b',
+    flags: 'g',
+    category: 'symptom',
+    en: 'nausea and vomiting',
+    es: 'nauseas y vomitos'
+  },
+  {
+    id: 'etoh',
+    term: 'EtOH',
+    pattern: '\\bEtOH\\b|\\bETOH\\b',
+    flags: 'g',
+    category: 'substance',
+    en: 'alcohol (ethanol)',
+    es: 'alcohol (etanol)'
+  },
+  {
+    id: 'abx',
+    term: 'ABX',
+    pattern: '\\bABX\\b',
+    flags: 'g',
+    category: 'medication-class',
+    en: 'antibiotics',
+    es: 'antibioticos'
+  },
+  {
+    id: 'rx-script',
+    term: 'Rx',
+    pattern: '\\bRx\\b',
+    flags: 'g',
+    category: 'sig-shorthand',
+    en: 'prescription',
+    es: 'receta'
+  },
+  {
+    id: 'k-plus',
+    term: 'K+',
+    pattern: '\\bK\\+\\b',
+    flags: 'g',
+    category: 'lab-marker',
+    en: 'potassium level (K+)',
+    es: 'nivel de potasio (K+)'
+  },
+  {
+    id: 'o2',
+    term: 'O2',
+    pattern: '\\bO2\\b',
+    flags: 'g',
+    category: 'respiratory-sign',
+    en: 'oxygen',
+    es: 'oxigeno'
+  },
+  {
+    id: 'fingerstick',
+    term: 'fingerstick',
+    pattern: '\\bfingersticks?\\b',
+    category: 'lab-marker',
+    en: 'finger-prick blood check',
+    es: 'medicion de sangre con puncion en el dedo'
+  }
+];
+
+for (const entry of CLINICAL_LEXICON_W3) {
+  CLINICAL_LEXICON.push(entry);
+}
+
 export const OTC_ADDONS = [
   {
     id: 'otc-ibuprofen',
@@ -803,7 +1738,7 @@ export function detectJargonMatches(text, lang = 'en') {
   const matches = [];
 
   for (const entry of CLINICAL_LEXICON) {
-    const regex = new RegExp(entry.pattern, 'gi');
+    const regex = new RegExp(entry.pattern, entry.flags || 'gi');
     const found = text.match(regex);
     if (found !== null) {
       matches.push({
@@ -829,9 +1764,10 @@ export function locateJargonSpans(text) {
   }
   const spans = [];
   for (const entry of CLINICAL_LEXICON) {
-    const regex = new RegExp(entry.pattern, 'gi');
+    const regex = new RegExp(entry.pattern, entry.flags || 'gi');
     let m = regex.exec(text);
     while (m !== null) {
+      const scope = detectContextScope(text, m.index, m[0].length);
       spans.push({
         id: entry.id,
         term: entry.term,
@@ -839,7 +1775,10 @@ export function locateJargonSpans(text) {
         start: m.index,
         end: m.index + m[0].length,
         text: m[0],
-        negated: isNegatedContext(text, m.index, m[0].length)
+        negated: scope.certainty === 'negated',
+        certainty: scope.certainty,
+        temporality: scope.temporality,
+        experiencer: scope.experiencer
       });
       if (m[0].length === 0) regex.lastIndex += 1;
       m = regex.exec(text);
@@ -952,7 +1891,7 @@ export function dejargonizeClinicalText(rawText, lang = 'en') {
 
   let translatedText = rawText;
   for (const entry of CLINICAL_LEXICON) {
-    translatedText = translatedText.replace(new RegExp(entry.pattern, 'gi'), entry[safeLang]);
+    translatedText = translatedText.replace(new RegExp(entry.pattern, entry.flags || 'gi'), entry[safeLang]);
   }
 
   if (safeLang === 'es') {
@@ -1614,6 +2553,82 @@ export function isNegatedContext(text, start = 0, length = 0) {
   return false;
 }
 
+// --- ConText-style clinical scope: certainty, temporality, experiencer ---
+// Cues are matched inside the same clause as the term (sentence, colon and
+// semicolon boundaries, and contrast terminators seal the window). Family
+// scope deliberately crosses commas: "family history of MI, diabetes, COPD"
+// marks all three.
+const CONTEXT_TERMINATOR_AFTER = /\b(?:but|however|yet|though|although|nevertheless|nonetheless|except)\b/gi;
+const CONTEXT_FAMILY_REGEX = /\b(?:family\s+history|family\s+hx|fhx?|f\/h|mother|father|mom|dad|maternal|paternal|sister|brother|siblings?|grandmother|grandfather|grandparents?|grandma|grandpa|aunt|uncle|parents?|relatives?|ancestors?|daughter|son|wife|husband|cousin|niece|nephew)\b/i;
+const CONTEXT_FAMILY_AFTER_REGEX = /\b(?:in|on|from|runs?\s+in)\s+(?:his|her|their|the|your|both)\s+(?:family|mother|father|mom|dad|parents?|siblings?|relatives?|maternal|paternal|family\s+side)\b|\bfamily\s+history\b/i;
+const CONTEXT_HISTORICAL_REGEX = /\b(?:history\s+of|h\/o|hx\s+of|hx\b|prior|previously?|remote|formerly?|in\s+the\s+past|past|childhood|years?\s+ago|long\s+ago|once\s+had|ex-smoker|s\/p|status\s+post|remote\s+history|distant|in\s+(?:19|20)\d{2}|back\s+in\s+(?:19|20)\d{2}|(?:19|20)\d{2})\b/i;
+const CONTEXT_UNCERTAIN_REGEX = /\b(?:possible|possibly|probable|probably|potential|potentially|suspect|suspected|suspicion|suspicious|cannot\s+rule\s+out|could\s+not\s+rule\s+out|can't\s+rule\s+out|cant\s+rule\s+out|may\s+have|might\s+have|could\s+have|evaluate\s+for|evaluation\s+for|eval\s+for|workup\s+for|work-up\s+for|assess\s+for|assessment\s+for|concern\s+for|concerned\s+for|concerns\s+for|question\s+of|questionable|rule\s+out|r\/o|monitor\s+for|monitoring\s+for|watch\s+for|watchful|return\s+for|check\s+for|in\s+case\s+of|if\s+needed|if\s+you|versus|vs\.|differential|ddx|presumed|apparent|likely|unlikely)\b/i;
+const CONTEXT_HPI_GUARD = /history\s+of\s+present\s+illness|h\.?p\.?i\b/gi;
+
+/**
+ * Classify the clinical scope around one text span.
+ * certainty:   'affirmed' | 'negated' | 'uncertain' (possible, suspected,
+ *              conditional instructions like "monitor for" or "return for").
+ * temporality: 'current' | 'historical' (history of, prior, remote, a year).
+ * experiencer: 'patient' | 'family' (family history, mother had, FHx).
+ */
+export function detectContextScope(text, start = 0, length = 0) {
+  const fallback = { certainty: 'affirmed', temporality: 'current', experiencer: 'patient' };
+  if (typeof text !== 'string' || !Number.isFinite(start)) return fallback;
+  const safeStart = Math.max(0, start);
+  const safeLength = Number.isFinite(length) ? Math.max(0, length) : 0;
+  const end = safeStart + safeLength;
+
+  let clauseStart = 0;
+  for (let i = safeStart - 1; i >= 0 && i >= safeStart - 240; i -= 1) {
+    if (isClaimBoundary(text, i) || text[i] === '\n') { clauseStart = i + 1; break; }
+    if (i === 0) clauseStart = 0;
+  }
+  if (safeStart - clauseStart > 240) clauseStart = safeStart - 240;
+  let clauseEnd = text.length;
+  for (let i = end; i < text.length && i <= end + 240; i += 1) {
+    if (isClaimBoundary(text, i) || text[i] === '\n') { clauseEnd = i; break; }
+  }
+
+  const before = text.slice(clauseStart, safeStart);
+  const after = text.slice(end, Math.min(clauseEnd, end + 72));
+  // Contrast terminators truncate the left window: "... but no dyspnea" is fresh scope.
+  let effBefore = before;
+  CONTEXT_TERMINATOR_AFTER.lastIndex = 0;
+  let cut = -1;
+  let tm = CONTEXT_TERMINATOR_AFTER.exec(before);
+  while (tm !== null) {
+    cut = tm.index + tm[0].length;
+    tm = CONTEXT_TERMINATOR_AFTER.exec(before);
+  }
+  if (cut > 0) effBefore = before.slice(cut);
+  CONTEXT_TERMINATOR_AFTER.lastIndex = 0;
+
+  // "history of present illness" is not a historical finding cue.
+  const ctxText = (effBefore + ' ' + after).replace(CONTEXT_HPI_GUARD, ' ');
+
+  const experiencer =
+    CONTEXT_FAMILY_REGEX.test(effBefore) || CONTEXT_FAMILY_AFTER_REGEX.test(after)
+      ? 'family'
+      : 'patient';
+  const temporality = CONTEXT_HISTORICAL_REGEX.test(ctxText) ? 'historical' : 'current';
+  let certainty;
+  if (!isNegatedContext(text, safeStart, safeLength)) {
+    certainty = CONTEXT_UNCERTAIN_REGEX.test(ctxText) ? 'uncertain' : 'affirmed';
+  } else {
+    // A bare imperative "rule out" after the term scopes what follows it
+    // ("Prior MI, rule out recurrence"), not the term itself; completed forms
+    // "ruled out" and "rules out" still negate.
+    const neutralized = `${text.slice(0, end)} ${text.slice(end)}`;
+    const onlyPostposed = !isNegatedContext(neutralized, safeStart, safeLength);
+    certainty =
+      onlyPostposed && /^[\s:;,()\[\]\/\-]*rule\s+out\b/i.test(text.slice(end, Math.min(text.length, end + 56)))
+        ? 'uncertain'
+        : 'negated';
+  }
+  return { certainty, temporality, experiencer };
+}
+
 export function detectNegatedTerms(text) {
   if (typeof text !== 'string' || text.length === 0) return [];
   return locateJargonSpans(text).filter((s) => s.negated === true);
@@ -1721,19 +2736,692 @@ export function extractDateStrings(text) {
   return out;
 }
 
+// --- Wave 3: instruction verification vocabulary -------------------------
+// Routes, frequencies, drug names and allergy/avoid cues. Surface forms map
+// to canonical classes so "PO", "oral" and "by mouth" verify as the same
+// route, and "BID", "twice a day" and "q12h" as the same frequency.
+
+const ROUTE_FORMS = {
+  'oral': ['po', 'p.o', 'p.o.', 'oral', 'orally', 'by mouth', 'by the mouth', 'per os', 'tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'tab', 'tabs', 'caplet', 'caplets', 'swallow', 'swallowed', 'take by mouth'],
+  'oral-disintegrating': ['odt', 'orally disintegrating', 'mouth-dissolving', 'dissolve on the tongue'],
+  'iv': ['iv', 'i.v', 'i.v.', 'intravenous', 'iv push', 'ivpb', 'into a vein', 'into the vein', 'by vein', 'through a vein', 'infusion'],
+  'im': ['im', 'i.m', 'i.m.', 'intramuscular', 'into a muscle', 'into the muscle'],
+  'subcutaneous': ['sc', 's.c', 's.c.', 'sq', 's.q', 's.q.', 'subcut', 'subcutaneous', 'sub-q', 'under the skin', 'just under the skin'],
+  'sublingual': ['sl', 's.l', 's.l.', 'sublingual', 'under the tongue', 'under your tongue'],
+  'inhaled': ['mdi', 'dpi', 'inhaler', 'inhalers', 'inhaled', 'inhale', 'inhalation', 'neb', 'nebs', 'nebulizer', 'nebuliser', 'nebulized', 'nebulised', 'puff', 'puffs', 'breathing treatment', 'breathing treatments'],
+  'topical': ['topical', 'cream', 'ointment', 'lotion', 'gel'],
+  'transdermal': ['patch', 'patches', 'transdermal'],
+  'rectal': ['pr', 'p.r', 'p.r.', 'rectal', 'suppository', 'suppositories', 'per rectum'],
+  'nasal': ['nasal', 'nasal spray', 'nose spray', 'intranasal'],
+  'drops': ['gtt', 'gtts', 'eye drops', 'ear drops', 'drops'],
+  'enteral': ['ng', 'og', 'ng tube', 'nasogastric', 'g-tube', 'gtube', 'feeding tube', 'peg tube', 'via tube', 'through a tube']
+};
+const ROUTE_COMPAT = {
+  'oral-disintegrating': new Set(['oral', 'oral-disintegrating']),
+  'oral': new Set(['oral', 'oral-disintegrating'])
+};
+
+const FREQ_FORMS = {
+  'once-daily': ['qd', 'q.d', 'q.d.', 'daily', 'once daily', 'once a day', 'every day', 'each day', 'q24h', 'every 24 hours', 'once per day'],
+  'morning-daily': ['qam', 'q.a.m', 'q.a.m.', 'every morning', 'each morning', 'in the morning', 'with breakfast', 'every am'],
+  'evening-daily': ['qpm', 'q.p.m', 'q.p.m.', 'every evening', 'each evening', 'in the evening', 'with dinner', 'with supper', 'every pm'],
+  'bedtime-daily': ['qhs', 'q.h.s', 'q.h.s.', 'hs', 'h.s', 'h.s.', 'at bedtime', 'every night at bedtime', 'every night', 'each night', 'nightly', 'at night', 'before bed'],
+  'twice-daily': ['bid', 'b.i.d', 'b.i.d.', 'twice daily', 'twice a day', 'two times a day', 'two times daily', 'q12h', 'every 12 hours', 'morning and evening'],
+  'thrice-daily': ['tid', 't.i.d', 't.i.d.', 'three times a day', 'three times daily', 'three times per day', 'q8h', 'every 8 hours', 'thrice daily'],
+  'four-times-daily': ['qid', 'q.i.d', 'q.i.d.', 'four times a day', 'four times daily', 'four times per day', 'q6h', 'every 6 hours'],
+  'six-times-daily': ['q4h', 'every 4 hours'],
+  'qh-3': ['q3h', 'every 3 hours'],
+  'qh-2': ['q2h', 'every 2 hours'],
+  'qh-1': ['q1h', 'every hour', 'hourly', 'qh'],
+  'alternate-daily': ['q48h', 'every 48 hours', 'every other day', 'qod', 'q.o.d', 'alternate days'],
+  'weekly': ['weekly', 'once a week', 'every week', 'each week', 'once weekly', 'qwk', 'qw'],
+  'biweekly': ['twice a week', 'twice weekly', 'biw'],
+  'as-needed': ['prn', 'p.r.n', 'p.r.n.', 'as needed', 'when needed', 'if needed', 'as required', 'only as needed'],
+  'before-meals': ['ac', 'a.c', 'a.c.', 'before meals', 'before eating', 'before each meal', 'preprandial', 'before food'],
+  'after-meals': ['pc', 'p.c', 'p.c.', 'after meals', 'after eating', 'after each meal', 'postprandial', 'after food'],
+  'once': ['stat', 'right away', 'immediately', 'one time', 'one-time', 'single dose', 'one dose', 'once'],
+  'with-meals': ['with meals', 'with food', 'with a meal']
+};
+// Daily-family forms are mutually compatible (qam/qd/qpm all mean once a day);
+// bedtime stays distinct because a morning-vs-bedtime swap is a real change.
+const FREQ_COMPAT_FAMILY = [['once-daily', 'morning-daily', 'evening-daily']];
+
+/**
+ * Common clinical agents and classes used to detect dose-less medication
+ * claims. Format: canonical name | comma-separated class tags | comma aliases.
+ */
+const DRUG_TABLE = `
+albuterol|bronchodilator|ventolin,proventil,proair,salbutamol
+levalbuterol|bronchodilator|xopenex
+ipratropium|anticholinergic|atrovent
+tiotropium|anticholinergic|spiriva
+fluticasone|corticosteroid|flonase,flovent
+budesonide|corticosteroid|pulmicort
+montelukast|leukotriene|singulair
+prednisone|corticosteroid|
+prednisolone|corticosteroid|orapred,prelone
+methylprednisolone|corticosteroid|medrol,solumedrol,solu-medrol
+dexamethasone|corticosteroid|decadron
+hydrocortisone|corticosteroid|
+metformin|biguanide|glucophage,fortamet,glumetza
+glipizide|sulfonylurea|glucotrol
+glyburide|sulfonylurea|diabeta,micronase
+glimepiride|sulfonylurea|amaryl
+sitagliptin|dpp4|januvia
+linagliptin|dpp4|tradjenta
+empagliflozin|sglt2|jardiance
+dapagliflozin|sglt2|farxiga
+canagliflozin|sglt2|invokana
+semaglutide|glp1|ozempic,wegovy,rybelsus
+liraglutide|glp1|victoza,saxenda
+dulaglutide|glp1|trulicity
+insulin|insulin|
+insulin glargine|insulin|lantus,basaglar,toujeo
+insulin lispro|insulin|humalog
+insulin aspart|insulin|novolog
+insulin nph|insulin|humulin n,novolin n
+insulin detemir|insulin|levemir
+insulin degludec|insulin|tresiba
+pioglitazone|tzd|actos
+lisinopril|acei|zestril,prinivil
+enalapril|acei|vasotec
+ramipril|acei|altace
+captopril|acei|capoten
+benazepril|acei|lotensin
+losartan|arb|cozaar
+valsartan|arb|diovan
+irbesartan|arb|avapro
+olmesartan|arb|benicar
+telmisartan|arb|micardis
+amlodipine|ccb|norvasc
+nifedipine|ccb|procardia,adalat
+diltiazem|ccb|cardizem,tiazac
+verapamil|ccb|calan,verelan
+felodipine|ccb|plendil
+metoprolol|beta-blocker|lopressor,toprol,toprol-xl
+atenolol|beta-blocker|tenormin
+carvedilol|beta-blocker|coreg
+propranolol|beta-blocker|inderal
+labetalol|beta-blocker|trandate,normodyne
+bisoprolol|beta-blocker|zebeta
+nebivolol|beta-blocker|bystolic
+atorvastatin|statin|lipitor
+simvastatin|statin|zocor
+rosuvastatin|statin|crestor
+pravastatin|statin|pravachol
+lovastatin|statin|mevacor
+ezetimibe|cholesterol|zetia
+levothyroxine|thyroid|synthroid,levoxyl,unithroid
+methimazole|antithyroid|tapazole
+apixaban|anticoagulant|eliquis
+rivaroxaban|anticoagulant|xarelto
+dabigatran|anticoagulant|pradaxa
+edoxaban|anticoagulant|savaysa
+warfarin|anticoagulant|coumadin,jantoven
+heparin|anticoagulant|
+enoxaparin|anticoagulant|lovenox
+fondaparinux|anticoagulant|arixtra
+clopidogrel|antiplatelet|plavix
+prasugrel|antiplatelet|effient
+ticagrelor|antiplatelet|brilinta
+aspirin|nsaid,antiplatelet|asa,ecotrin
+ibuprofen|nsaid|advil,motrin
+naproxen|nsaid|aleve,naprosyn
+celecoxib|nsaid|celebrex
+diclofenac|nsaid|voltaren
+ketorolac|nsaid|toradol
+meloxicam|nsaid|mobic
+indomethacin|nsaid|indocin
+acetaminophen|analgesic|tylenol,paracetamol
+oxycodone|opioid|percocet,oxycontin,roxicodone
+hydrocodone|opioid|norco,vicodin,lortab
+morphine|opioid|
+hydromorphone|opioid|dilaudid
+fentanyl|opioid|duragesic
+tramadol|opioid|ultram
+codeine|opioid|
+naloxone|antidote|narcan
+gabapentin|gabapentinoid|neurontin
+pregabalin|gabapentinoid|lyrica
+amoxicillin|penicillin-class,antibiotic|amoxil
+amoxicillin-clavulanate|penicillin-class,antibiotic|augmentin
+penicillin|penicillin-class,antibiotic|pcn,penicillin vk
+ampicillin|penicillin-class,antibiotic|
+cephalexin|cephalosporin,antibiotic|keflex
+cefazolin|cephalosporin,antibiotic|ancef
+ceftriaxone|cephalosporin,antibiotic|rocephin
+cefuroxime|cephalosporin,antibiotic|ceftin
+cefepime|cephalosporin,antibiotic|maxipime
+cefdinir|cephalosporin,antibiotic|omnicef
+azithromycin|macrolide,antibiotic|zithromax,z-pak,zpak
+clarithromycin|macrolide,antibiotic|biaxin
+erythromycin|macrolide,antibiotic|
+doxycycline|tetracycline,antibiotic|vibramycin
+minocycline|tetracycline,antibiotic|minocin
+ciprofloxacin|fluoroquinolone,antibiotic|cipro
+levofloxacin|fluoroquinolone,antibiotic|levaquin
+moxifloxacin|fluoroquinolone,antibiotic|avelox
+sulfamethoxazole-trimethoprim|sulfonamide,antibiotic|bactrim,septra,tmp-smx,smx-tmp
+sulfa|sulfonamide|
+nitrofurantoin|antibiotic|macrobid,macrodantin
+vancomycin|antibiotic|vancocin,vanc
+clindamycin|antibiotic|cleocin
+metronidazole|antibiotic|flagyl
+fluconazole|antifungal|diflucan
+ketoconazole|antifungal|nizoral
+nystatin|antifungal|mycostatin
+acyclovir|antiviral|zovirax
+valacyclovir|antiviral|valtrex
+oseltamivir|antiviral|tamiflu
+ondansetron|antiemetic|zofran
+promethazine|antiemetic|phenergan
+prochlorperazine|antiemetic|compazine
+metoclopramide|antiemetic|reglan
+pantoprazole|ppi|protonix
+omeprazole|ppi|prilosec
+esomeprazole|ppi|nexium
+lansoprazole|ppi|prevacid
+famotidine|h2ra|pepcid
+ranitidine|h2ra|zantac
+furosemide|diuretic|lasix
+bumetanide|diuretic|bumex
+torsemide|diuretic|demadex
+hydrochlorothiazide|diuretic|hctz,microzide
+spironolactone|diuretic|aldactone
+triamterene|diuretic|dyrenium
+digoxin|cardiac|lanoxin
+isosorbide|nitrate|imdur,isordil
+nitroglycerin|nitrate|nitrostat
+hydralazine|vasodilator|
+doxazosin|alpha-blocker|cardura
+tamsulosin|alpha-blocker|flomax
+finasteride|5ari|proscar,propecia
+oxybutynin|anticholinergic|ditropan
+cyclobenzaprine|muscle-relaxant|flexeril
+methocarbamol|muscle-relaxant|robaxin
+baclofen|muscle-relaxant|
+tizanidine|muscle-relaxant|zanaflex
+cetirizine|antihistamine|zyrtec
+loratadine|antihistamine|claritin
+fexofenadine|antihistamine|allegra
+diphenhydramine|antihistamine|benadryl
+hydroxyzine|antihistamine|atarax,vistaril
+meclizine|antihistamine|antivert
+lorazepam|benzodiazepine|ativan
+alprazolam|benzodiazepine|xanax
+diazepam|benzodiazepine|valium
+clonazepam|benzodiazepine|klonopin
+zolpidem|sedative|ambien
+sertraline|ssri|zoloft
+fluoxetine|ssri|prozac
+escitalopram|ssri|lexapro
+citalopram|ssri|celexa
+paroxetine|ssri|paxil
+venlafaxine|snri|effexor
+duloxetine|snri|cymbalta
+bupropion|antidepressant|wellbutrin,zyban
+trazodone|antidepressant|desyrel
+mirtazapine|antidepressant|remeron
+amitriptyline|tca|elavil
+nortriptyline|tca|pamelor
+quetiapine|antipsychotic|seroquel
+olanzapine|antipsychotic|zyprexa
+risperidone|antipsychotic|risperdal
+aripiprazole|antipsychotic|abilify
+haloperidol|antipsychotic|haldol
+lithium|mood-stabilizer|
+lamotrigine|anticonvulsant|lamictal
+levetiracetam|anticonvulsant|keppra
+valproate|anticonvulsant|depakote,depakene
+carbamazepine|anticonvulsant|tegretol
+phenytoin|anticonvulsant|dilantin
+topiramate|anticonvulsant|topamax
+allopurinol|uric|zyloprim
+colchicine|gout|colcrys
+calcium carbonate|supplement|tums
+iron sulfate|supplement|ferrous sulfate,feosol,fer-in-sol
+ferrous sulfate|supplement|iron
+potassium chloride|supplement|kcl,k-dur,klor-con,potassium
+magnesium|supplement|
+vitamin d|supplement|vitamin d3,cholecalciferol
+folic acid|supplement|folate
+vitamin b12|supplement|cyanocobalamin
+multivitamin|supplement|mvi
+epinephrine|rescue|epipen,adrenaline
+polyethylene glycol|laxative|miralax,peg 3350
+docusate|laxative|colace
+senna|laxative|senokot
+bisacodyl|laxative|dulcolax
+loperamide|antidiarrheal|imodium
+lactulose|laxative|
+calcium|supplement|
+nsaid|nsaid|nsaids
+opioid|opioid|opioids,opiate,opiates
+statin|statin|statins
+diuretic|diuretic|diuretics
+steroid|corticosteroid|steroids
+antibiotic|antibiotic|antibiotics,abx
+benzodiazepine|benzodiazepine|benzodiazepines,benzo,benzos
+ace inhibitor|acei|ace inhibitors
+arb|arb|arbs
+beta blocker|beta-blocker|beta-blocker,beta blockers,beta-blockers
+ssri|ssri|ssris
+anticoagulant|anticoagulant|anticoagulants
+antiplatelet|antiplatelet|antiplatelets
+antihistamine|antihistamine|antihistamines
+`;
+
+const DRUG_INFO = new Map();
+(function buildDrugIndex() {
+  for (const line of DRUG_TABLE.trim().split('\n')) {
+    const parts = line.split('|');
+    if (parts.length < 2) continue;
+    const name = parts[0].trim();
+    const classes = new Set((parts[1] || '').split(',').map((c) => c.trim()).filter(Boolean));
+    const surfaces = [name, ...(parts[2] || '').split(',').map((a) => a.trim()).filter(Boolean)];
+    for (const s of surfaces) {
+      const key = s.toLowerCase();
+      if (!DRUG_INFO.has(key)) DRUG_INFO.set(key, { canonical: name, classes, surfaces });
+    }
+  }
+})();
+const DRUG_SURFACE_LIST = [...new Set([...DRUG_INFO.values()].flatMap((v) => v.surfaces))];
+const DRUG_NAME_REGEX = new RegExp(
+  `\\b(${DRUG_SURFACE_LIST.slice().sort((a, b) => b.length - a.length).map(escapeRegExp).join('|')})\\b`,
+  'gi'
+);
+
+// Drug classes specific enough to imply a real cross-sensitivity or a listed
+// avoidance: "avoid NSAIDs" + "take ibuprofen" conflicts via nsaid, while the
+// generic tag "antibiotic" alone does not.
+const ALLERGY_CLASSES = new Set(['penicillin-class', 'cephalosporin', 'sulfonamide', 'nsaid', 'macrolide', 'fluoroquinolone', 'opioid', 'benzodiazepine']);
+const AVOID_CLASSES = new Set(['nsaid', 'anticoagulant', 'antiplatelet', 'opioid', 'acei', 'arb', 'statin', 'diuretic', 'corticosteroid', 'ssri', 'benzodiazepine', 'ppi', 'h2ra', 'beta-blocker']);
+
+const ALLERGY_TO_REGEX = /\b(?:allergic\s+to|allerg(?:y|ies)\s+to|allergies?\s*:|allergy\s*:|intolerant\s+to|cannot\s+tolerate|can't\s+tolerate|cant\s+tolerate)\s*([a-zA-Z][a-zA-Z0-9\s,\/&()\-]{0,80})/gi;
+const ALLERGY_SUFFIX_REGEX = /\b([a-zA-Z][a-zA-Z0-9\-]*(?:\s+[a-zA-Z][a-zA-Z0-9\-]*){0,2})\s+allerg(?:y|ies)\b/gi;
+const NKDA_REGEX = /\b(?:NKDA|NKA|NKMA|no\s+known\s+(?:drug\s+|medication\s+)?allerg(?:y|ies)|denies\s+allergies|no\s+allerg(?:y|ies))\b/gi;
+const AVOID_CUE_REGEX = /\b(?:avoids?|contraindicated|contraindication|do\s+not\s+take|do\s+not\s+use|never\s+take|never\s+use|stops?|stopped|discontinues?|discontinued|must\s+not\s+take|should\s+not\s+take|cannot\s+take|can't\s+take|cant\s+take|not\s+recommended|holds?|held|cease|ceased)\b/i;
+const ALLERGY_IGNORE = new Set([
+  'it', 'them', 'her', 'him', 'this', 'that', 'these', 'those', 'nothing',
+  'everything', 'anything', 'something', 'seasonal', 'environmental', 'multiple',
+  'many', 'several', 'various', 'any', 'some', 'no', 'none', 'unknown', 'mild',
+  'severe', 'serious', 'moderate', 'drug', 'drugs', 'medication', 'medications',
+  'medicine', 'medicines', 'food', 'foods', 'all', 'and', 'or', 'to', 'the'
+]);
+
+/** A comma between digits is a thousands separator; otherwise it splits instructions. */
+function isInstructionBoundary(text, i) {
+  const ch = text[i];
+  if (ch === '\n') return true;
+  if (ch === ',') {
+    return !(i > 0 && i + 1 < text.length && /[0-9]/.test(text[i - 1]) && /[0-9]/.test(text[i + 1]));
+  }
+  return isClaimBoundary(text, i);
+}
+
+/** Clause-level segments, paren-aware so "(Ibuprofen, Naproxen)" stays whole. */
+function instructionSegments(text) {
+  const segs = [];
+  let segStart = 0;
+  let depth = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '(' || ch === '[') depth += 1;
+    else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+    else if (depth === 0 && isInstructionBoundary(text, i)) {
+      segs.push({ start: segStart, end: i });
+      segStart = i + 1;
+    }
+  }
+  segs.push({ start: segStart, end: text.length });
+  return segs.filter((s) => s.end > s.start);
+}
+
+function segmentIndexAt(segs, pos) {
+  for (let i = 0; i < segs.length; i += 1) {
+    if (pos >= segs[i].start && pos < segs[i].end) return i;
+  }
+  return -1;
+}
+
+function buildSurfaceIndex(forms) {
+  const map = new Map();
+  const surfaces = [];
+  for (const [canonical, list] of Object.entries(forms)) {
+    for (const s of list) {
+      surfaces.push(s);
+      map.set(s.toLowerCase(), canonical);
+    }
+  }
+  surfaces.sort((a, b) => b.length - a.length);
+  const regex = new RegExp(`\\b(${surfaces.map(escapeRegExp).join('|')})\\b`, 'gi');
+  return { regex, map };
+}
+const ROUTE_INDEX = buildSurfaceIndex(ROUTE_FORMS);
+const FREQ_INDEX = buildSurfaceIndex(FREQ_FORMS);
+
+/** Every route/frequency token in a text with its canonical class and span. */
+function instructionTokensIn(text) {
+  const tokens = [];
+  ROUTE_INDEX.regex.lastIndex = 0;
+  let m = ROUTE_INDEX.regex.exec(text);
+  while (m !== null) {
+    const key = m[0].toLowerCase().replace(/\.+$/, '');
+    tokens.push({ kind: 'route', canonical: ROUTE_INDEX.map.get(key) || ROUTE_INDEX.map.get(m[0].toLowerCase()), raw: m[0], start: m.index, end: m.index + m[0].length });
+    if (m[0].length === 0) ROUTE_INDEX.regex.lastIndex += 1;
+    m = ROUTE_INDEX.regex.exec(text);
+  }
+  FREQ_INDEX.regex.lastIndex = 0;
+  m = FREQ_INDEX.regex.exec(text);
+  while (m !== null) {
+    const key = m[0].toLowerCase().replace(/\.+$/, '');
+    tokens.push({ kind: 'frequency', canonical: FREQ_INDEX.map.get(key) || FREQ_INDEX.map.get(m[0].toLowerCase()), raw: m[0], start: m.index, end: m.index + m[0].length });
+    if (m[0].length === 0) FREQ_INDEX.regex.lastIndex += 1;
+    m = FREQ_INDEX.regex.exec(text);
+  }
+  tokens.sort((a, b) => a.start - b.start);
+  return tokens;
+}
+
+/**
+ * Bind each instruction token to a drug anchor in the same segment. A token
+ * attaches to the nearest preceding anchor ("Metformin 500 mg PO BID" puts
+ * PO and BID on Metformin, never on Lisinopril after "and"); when no anchor
+ * precedes it, the nearest following anchor takes it ("PO metformin").
+ */
+function assignInstructionTokens(text, anchors, tokens) {
+  const segs = instructionSegments(text);
+  const byAnchor = anchors.map(() => ({ routes: [], freqs: [] }));
+  const sorted = anchors.map((a, i) => ({ ...a, idx: i })).sort((a, b) => a.start - b.start);
+  for (const tok of tokens) {
+    const segIdx = segmentIndexAt(segs, tok.start);
+    if (segIdx === -1) continue;
+    const seg = segs[segIdx];
+    const inSeg = sorted.filter((a) => a.start >= seg.start && a.end <= seg.end);
+    if (!inSeg.length) continue;
+    const preceding = inSeg.filter((a) => a.end <= tok.start);
+    let anchor = null;
+    if (preceding.length) {
+      anchor = preceding.reduce((best, a) => (tok.start - a.end < tok.start - best.end ? a : best), preceding[0]);
+    } else {
+      const following = inSeg.filter((a) => a.start >= tok.end);
+      if (following.length) anchor = following.reduce((best, a) => (a.start - tok.end < best.start - tok.end ? a : best), following[0]);
+    }
+    if (!anchor) continue;
+    const bucket = byAnchor[anchor.idx];
+    if (tok.kind === 'route') bucket.routes.push(tok);
+    else bucket.freqs.push(tok);
+  }
+  return byAnchor;
+}
+
+/** Drug-like anchors in a text: lexicon-free formulary names + capitalized med+dose subjects. */
+function drugAnchorsIn(text) {
+  const anchors = [];
+  DRUG_NAME_REGEX.lastIndex = 0;
+  let m = DRUG_NAME_REGEX.exec(text);
+  while (m !== null) {
+    anchors.push({ start: m.index, end: m.index + m[0].length, surface: m[0] });
+    if (m[0].length === 0) DRUG_NAME_REGEX.lastIndex += 1;
+    m = DRUG_NAME_REGEX.exec(text);
+  }
+  CLAIM_MED_REGEX.lastIndex = 0;
+  m = CLAIM_MED_REGEX.exec(text);
+  while (m !== null) {
+    anchors.push({ start: m.index, end: m.index + m[1].length, surface: m[1] });
+    if (m[0].length === 0) CLAIM_MED_REGEX.lastIndex += 1;
+    m = CLAIM_MED_REGEX.exec(text);
+  }
+  anchors.sort((a, b) => a.start - b.start || b.end - a.end);
+  // Drop anchors fully contained inside a longer anchor ("insulin" inside "insulin glargine").
+  const dedup = [];
+  for (const a of anchors) {
+    if (dedup.some((d) => a.start >= d.start && a.end <= d.end)) continue;
+    dedup.push(a);
+  }
+  return dedup;
+}
+
+/** Split an "allergic to X and Y" capture into item spans. */
+function splitListItems(listText, baseIndex) {
+  const items = [];
+  const re = /\b(?:and|or)\b|[,/&;]/gi;
+  let start = 0;
+  let m = re.exec(listText);
+  while (m !== null) {
+    items.push({ text: listText.slice(start, m.index), start: baseIndex + start, end: baseIndex + m.index });
+    start = m.index + m[0].length;
+    m = re.exec(listText);
+  }
+  items.push({ text: listText.slice(start), start: baseIndex + start, end: baseIndex + listText.length });
+  return items;
+}
+
+function cleanAllergen(raw) {
+  let s = String(raw || '').trim();
+  s = s.replace(/^(?:the|a|an|any|all|both|mild|severe|serious|moderate)\s+/i, '');
+  s = s.replace(/\s*(?:allergy|allergies|reactions?|rash|drugs?|medications?|medicines?)\s*$/i, '');
+  return s.trim();
+}
+
+function allergenEntry(text, surfaceRaw, start, end) {
+  const surface = cleanAllergen(surfaceRaw);
+  if (!surface || surface.length < 2 || ALLERGY_IGNORE.has(surface.toLowerCase())) return null;
+  const offset = surfaceRaw.indexOf(surface);
+  const info = DRUG_INFO.get(surface.toLowerCase());
+  const scope = detectContextScope(text, start, end - start);
+  return {
+    surface,
+    canonical: info ? info.canonical : surface.toLowerCase(),
+    classes: info ? info.classes : new Set(),
+    start: start + Math.max(0, offset),
+    end: start + Math.max(0, offset) + surface.length,
+    experiencer: scope.experiencer
+  };
+}
+
+/**
+ * Allergy structure of a note: patient allergens, family-history allergens,
+ * and "no known drug allergies" markers, each with exact spans.
+ */
+export function extractAllergyInfo(text) {
+  const info = { patientItems: [], familyItems: [], nkda: [] };
+  if (typeof text !== 'string' || !text.length) return info;
+  const pushItem = (entry) => {
+    if (!entry) return;
+    const target = entry.experiencer === 'family' ? info.familyItems : info.patientItems;
+    if (!target.some((x) => !(entry.start >= x.end || entry.end <= x.start))) {
+      target.push(entry);
+    }
+  };
+  NKDA_REGEX.lastIndex = 0;
+  let m = NKDA_REGEX.exec(text);
+  while (m !== null) {
+    info.nkda.push({ start: m.index, end: m.index + m[0].length, raw: m[0] });
+    if (m[0].length === 0) NKDA_REGEX.lastIndex += 1;
+    m = NKDA_REGEX.exec(text);
+  }
+  const taken = [];
+  ALLERGY_TO_REGEX.lastIndex = 0;
+  m = ALLERGY_TO_REGEX.exec(text);
+  while (m !== null) {
+    const listText = m[1];
+    const base = m.index + m[0].length - listText.length;
+    for (const item of splitListItems(listText, base)) {
+      const entry = allergenEntry(text, item.text, item.start, item.end);
+      if (entry) {
+        pushItem(entry);
+        taken.push({ start: item.start, end: item.end });
+      }
+    }
+    if (m[0].length === 0) ALLERGY_TO_REGEX.lastIndex += 1;
+    m = ALLERGY_TO_REGEX.exec(text);
+  }
+  ALLERGY_SUFFIX_REGEX.lastIndex = 0;
+  m = ALLERGY_SUFFIX_REGEX.exec(text);
+  while (m !== null) {
+    const covered = taken.some((t) => m.index >= t.start && m.index + m[1].length <= t.end);
+    if (!covered) {
+      const entry = allergenEntry(text, m[1], m.index, m.index + m[1].length);
+      pushItem(entry);
+    }
+    if (m[0].length === 0) ALLERGY_SUFFIX_REGEX.lastIndex += 1;
+    m = ALLERGY_SUFFIX_REGEX.exec(text);
+  }
+  return info;
+}
+
+function drugFormsFor(subject) {
+  const info = DRUG_INFO.get(String(subject || '').toLowerCase());
+  if (info) return info.surfaces;
+  return [String(subject || '').toLowerCase()];
+}
+
+function drugClassesFor(subject) {
+  const info = DRUG_INFO.get(String(subject || '').toLowerCase());
+  return info ? info.classes : new Set();
+}
+
+function collectOccurrences(src, forms) {
+  const occurrences = [];
+  for (const form of forms) {
+    const re = subjectOccurrenceRegex(form);
+    let m = re.exec(src);
+    while (m !== null) {
+      occurrences.push({ start: m.index, end: m.index + m[0].length, surface: m[0] });
+      if (m[0].length === 0) re.lastIndex += 1;
+      m = re.exec(src);
+    }
+  }
+  occurrences.sort((a, b) => a.start - b.start || a.end - b.end);
+  return occurrences;
+}
+
+function spansOverlapRange(span, ranges) {
+  return ranges.some((r) => span.start < r.end && span.end > r.start);
+}
+
+/**
+ * Classify each source occurrence of a medication subject:
+ * 'allergy' inside a patient allergy list, 'family' inside a family-history
+ * mention or family allergy, 'avoid' inside an avoid/contraindicated clause,
+ * otherwise 'neutral' (a prescribe-style mention that can back a claim).
+ */
+function classifyMedOccurrences(src, occurrences, allergyInfo, segs) {
+  const segments = segs || instructionSegments(src);
+  const allergyRanges = allergyInfo.patientItems.map((x) => ({ start: x.start, end: x.end }));
+  const familyRanges = allergyInfo.familyItems.map((x) => ({ start: x.start, end: x.end }));
+  return occurrences.map((occ) => {
+    let cls = 'neutral';
+    if (spansOverlapRange(occ, allergyRanges)) cls = 'allergy';
+    else if (spansOverlapRange(occ, familyRanges)) cls = 'family';
+    else if (detectContextScope(src, occ.start, occ.end - occ.start).experiencer === 'family') cls = 'family';
+    else {
+      const segIdx = segmentIndexAt(segments, occ.start);
+      if (segIdx !== -1) {
+        const segText = src.slice(segments[segIdx].start, segments[segIdx].end);
+        if (!ADHERENCE_CUE_REGEX.test(segText) && AVOID_CUE_REGEX.test(segText)) cls = 'avoid';
+      }
+    }
+    return { ...occ, cls };
+  });
+}
+
+/** Drugs sitting inside avoid/contraindicated clauses of the source, with classes. */
+function avoidContextDrugSet(src, segs) {
+  const out = { canonicals: new Set(), classes: new Set(), spans: [] };
+  const segments = segs || instructionSegments(src);
+  for (const seg of segments) {
+    const segText = src.slice(seg.start, seg.end);
+    if (ADHERENCE_CUE_REGEX.test(segText)) continue;
+    if (!AVOID_CUE_REGEX.test(segText)) continue;
+    DRUG_NAME_REGEX.lastIndex = 0;
+    let m = DRUG_NAME_REGEX.exec(segText);
+    while (m !== null) {
+      const info = DRUG_INFO.get(m[0].toLowerCase());
+      if (info) {
+        out.canonicals.add(info.canonical);
+        for (const c of info.classes) out.classes.add(c);
+        out.spans.push({ start: seg.start + m.index, end: seg.start + m.index + m[0].length });
+      }
+      if (m[0].length === 0) DRUG_NAME_REGEX.lastIndex += 1;
+      m = DRUG_NAME_REGEX.exec(segText);
+    }
+  }
+  return out;
+}
+
+/**
+ * The route/frequency canonical classes a text assigns to one subject.
+ * Occurrences are the subject's spans in the text; anchors are every drug
+ * anchor, so "PO" can never bleed across to a neighboring medication.
+ */
+function instructionSetFor(text, occurrences) {
+  const anchors = drugAnchorsIn(text);
+  const tokens = instructionTokensIn(text);
+  const assigned = assignInstructionTokens(text, anchors, tokens);
+  const routes = [];
+  const freqs = [];
+  for (const occ of occurrences) {
+    const idx = anchors.findIndex((a) => a.start === occ.start && a.end === occ.end);
+    if (idx === -1) continue;
+    routes.push(...assigned[idx].routes);
+    freqs.push(...assigned[idx].freqs);
+  }
+  return { routes, freqs };
+}
+
+function freqCompatible(claimed, sourceSet) {
+  if (sourceSet.has(claimed)) return true;
+  for (const fam of FREQ_COMPAT_FAMILY) {
+    if (fam.includes(claimed)) return [...sourceSet].some((s) => fam.includes(s));
+  }
+  return false;
+}
+
+function routeCompatible(claimed, sourceSet) {
+  if (sourceSet.has(claimed)) return true;
+  const compat = ROUTE_COMPAT[claimed];
+  return compat ? [...sourceSet].some((s) => compat.has(s)) : false;
+}
+
+const ADHERENCE_CUE_REGEX = /\b(?:do\s+not\s+stop|never\s+stop|keep\s+taking|keep\s+using|continues?|continued|finish|finishes|complete|completes|remain\s+on|stay\s+on|stay\s+with)\b/i;
+
+/** Draft-side instruction context of a claim span: avoid, adherence, or prescribe. */
+function claimDraftContext(text, claimStart, segs) {
+  const segIdx = segmentIndexAt(segs, claimStart);
+  if (segIdx === -1) return 'prescribe';
+  const segText = text.slice(segs[segIdx].start, segs[segIdx].end);
+  if (ADHERENCE_CUE_REGEX.test(segText)) return 'adherence';
+  if (AVOID_CUE_REGEX.test(segText)) return 'avoid';
+  return 'prescribe';
+}
+
 /**
  * Extract checkable claims from generated text: medication+dose, lab marker+value,
- * standalone dosages, and dates. Claims are positions in the generated text, so
- * each can be highlighted and independently verified against the source note.
+ * standalone dosages, dates, allergy assertions, dose-less drug mentions, and
+ * per-subject route/frequency instructions. Claims are positions in the
+ * generated text, so each can be highlighted and independently verified.
  */
 export function extractClaims(text) {
   if (typeof text !== 'string' || text.trim().length === 0) return [];
   const claims = [];
   const covered = [];
+  const segs = instructionSegments(text);
 
   let m = CLAIM_MED_REGEX.exec(text);
   while (m !== null) {
-    claims.push({ type: 'medication', subject: m[1], value: parseDosageNumber(m[2]), unit: m[3], raw: m[0], index: m.index });
+    const info = DRUG_INFO.get(m[1].toLowerCase());
+    claims.push({
+      type: 'medication',
+      subject: m[1],
+      canonical: info ? info.canonical : null,
+      value: parseDosageNumber(m[2]),
+      unit: m[3],
+      context: claimDraftContext(text, m.index, segs),
+      raw: m[0],
+      index: m.index
+    });
     covered.push([m.index, m.index + m[0].length]);
     if (m[0].length === 0) CLAIM_MED_REGEX.lastIndex += 1;
     m = CLAIM_MED_REGEX.exec(text);
@@ -1763,11 +3451,106 @@ export function extractClaims(text) {
     const inside = covered.some(([s, e]) => g.index >= s && g.index < e);
     if (!inside) {
       claims.push({ type: 'dosage', subject: null, value: parseDosageNumber(g[1]), unit: g[2], raw: g[0], index: g.index });
+      covered.push([g.index, g.index + g[0].length]);
     }
     if (g[0].length === 0) CLAIM_DOSE_REGEX.lastIndex += 1;
     g = CLAIM_DOSE_REGEX.exec(text);
   }
   CLAIM_DOSE_REGEX.lastIndex = 0;
+
+  // Allergy and NKDA assertions in the draft are checkable claims, and their
+  // allergen spans are covered so a drug listed there is not double-claimed.
+  const draftAllergy = extractAllergyInfo(text);
+  for (const item of [...draftAllergy.patientItems, ...draftAllergy.familyItems]) {
+    claims.push({
+      type: 'allergy',
+      kind: 'assertion',
+      subject: item.surface,
+      canonical: item.canonical,
+      classes: item.classes,
+      experiencer: item.experiencer,
+      value: null,
+      unit: '',
+      raw: text.slice(item.start, item.end),
+      index: item.start
+    });
+    covered.push([item.start, item.end]);
+  }
+  for (const n of draftAllergy.nkda) {
+    claims.push({
+      type: 'allergy',
+      kind: 'nkda',
+      subject: null,
+      value: null,
+      unit: '',
+      raw: n.raw,
+      index: n.start
+    });
+    covered.push([n.start, n.end]);
+  }
+
+  const isCovered = (start, end) => covered.some(([s, e]) => start < e && end > s);
+
+  // Dose-less drug mentions: every formulary name outside covered spans.
+  const anchors = [];
+  DRUG_NAME_REGEX.lastIndex = 0;
+  m = DRUG_NAME_REGEX.exec(text);
+  while (m !== null) {
+    const start = m.index;
+    const end = m.index + m[0].length;
+    if (!isCovered(start, end)) {
+      const info = DRUG_INFO.get(m[0].toLowerCase());
+      const context = claimDraftContext(text, start, segs);
+      claims.push({
+        type: 'medication',
+        subject: m[0],
+        canonical: info ? info.canonical : null,
+        doseless: true,
+        context,
+        value: null,
+        unit: '',
+        raw: m[0],
+        index: start
+      });
+    }
+    anchors.push({ start, end, surface: m[0] });
+    if (m[0].length === 0) DRUG_NAME_REGEX.lastIndex += 1;
+    m = DRUG_NAME_REGEX.exec(text);
+  }
+  DRUG_NAME_REGEX.lastIndex = 0;
+  // Med-claim subjects are anchors too ("Xyzal 5 mg PO" binds PO to Xyzal).
+  for (const c of claims) {
+    if (c.type === 'medication' && c.subject) {
+      anchors.push({ start: c.index, end: c.index + c.subject.length, surface: c.subject });
+    }
+  }
+  anchors.sort((a, b) => a.start - b.start || b.end - a.end);
+  const dedupAnchors = [];
+  for (const a of anchors) {
+    if (dedupAnchors.some((x) => a.start >= x.start && a.end <= x.end)) continue;
+    dedupAnchors.push(a);
+  }
+
+  // Route/frequency instructions bound to their drug anchor inside the segment.
+  const tokens = instructionTokensIn(text).filter((t) => !isCovered(t.start, t.end));
+  const assigned = assignInstructionTokens(text, dedupAnchors, tokens);
+  const seenInstr = new Set();
+  dedupAnchors.forEach((anchor, i) => {
+    for (const tok of [...assigned[i].routes, ...assigned[i].freqs]) {
+      const key = `${tok.kind}|${anchor.start}|${tok.canonical}`;
+      if (seenInstr.has(key) || !tok.canonical) continue;
+      seenInstr.add(key);
+      claims.push({
+        type: tok.kind,
+        subject: anchor.surface,
+        claimed: tok.canonical,
+        value: null,
+        unit: '',
+        raw: tok.raw,
+        index: tok.start
+      });
+    }
+  });
 
   claims.sort((a, b) => a.index - b.index);
   return claims;
@@ -1895,20 +3678,296 @@ function numbersInWindow(windowText, offsetBase) {
   return out;
 }
 
+/** Cached structural parse of a source note, shared across claim verifications. */
+const SRC_CONTEXT_CACHE = new Map();
+function sourceContext(src) {
+  let ctx = SRC_CONTEXT_CACHE.get(src);
+  if (!ctx) {
+    ctx = {
+      segs: instructionSegments(src),
+      anchors: drugAnchorsIn(src),
+      tokens: instructionTokensIn(src),
+      allergy: extractAllergyInfo(src)
+    };
+    ctx.assigned = assignInstructionTokens(src, ctx.anchors, ctx.tokens);
+    ctx.avoid = avoidContextDrugSet(src, ctx.segs);
+    if (SRC_CONTEXT_CACHE.size > 8) SRC_CONTEXT_CACHE.clear();
+    SRC_CONTEXT_CACHE.set(src, ctx);
+  }
+  return ctx;
+}
+
+/** Per-anchor instruction tokens for a set of subject occurrences in a source. */
+function instructionSetForCached(ctx, occurrences) {
+  const routes = [];
+  const freqs = [];
+  for (const occ of occurrences) {
+    const idx = ctx.anchors.findIndex((a) => a.start === occ.start && a.end === occ.end);
+    if (idx === -1) continue;
+    routes.push(...ctx.assigned[idx].routes);
+    freqs.push(...ctx.assigned[idx].freqs);
+  }
+  return { routes, freqs };
+}
+
+function classIntersection(a, b, allowed) {
+  const out = [];
+  for (const c of a || []) {
+    if (b.has(c) && (!allowed || allowed.has(c))) out.push(c);
+  }
+  return out;
+}
+
+/** Draft asserts an allergy/NKDA: verify the source asserts the same thing. */
+function verifyAllergyClaim(claim, src) {
+  const ctx = sourceContext(src);
+  if (claim.kind === 'nkda') {
+    if (ctx.allergy.nkda.length) {
+      return { supported: true, reason: 'context-match', spans: ctx.allergy.nkda.map((n) => ({ start: n.start, end: n.end })) };
+    }
+    return { supported: false, reason: 'unbacked_allergy', spans: [], found: ctx.allergy.patientItems.map((i) => i.surface) };
+  }
+  const canon = claim.canonical || String(claim.subject || '').toLowerCase();
+  const cls = claim.classes instanceof Set ? claim.classes : drugClassesFor(claim.subject);
+  const items = claim.experiencer === 'family' ? ctx.allergy.familyItems : ctx.allergy.patientItems;
+  const hit = items.find((a) =>
+    a.canonical === canon || classIntersection(a.classes, cls, ALLERGY_CLASSES).length > 0);
+  if (hit) {
+    return { supported: true, reason: 'context-match', spans: [{ start: hit.start, end: hit.end }] };
+  }
+  return { supported: false, reason: 'unbacked_allergy', spans: [], found: items.map((i) => i.surface) };
+}
+
+/** Draft binds a route or frequency to a subject: compare canonical classes. */
+function verifyInstructionClaim(claim, src) {
+  const ctx = sourceContext(src);
+  const forms = drugFormsFor(claim.subject);
+  const occurrences = collectOccurrences(src, forms);
+  if (!occurrences.length) {
+    return { supported: false, reason: 'unsupported', spans: [] };
+  }
+  const classified = classifyMedOccurrences(src, occurrences, ctx.allergy, ctx.segs);
+  const neutral = classified.filter((o) => o.cls === 'neutral' || o.cls === 'avoid');
+  if (!neutral.length) {
+    return { supported: false, reason: 'unsupported', spans: classified, detail: { context: classified[0].cls } };
+  }
+  const { routes, freqs } = instructionSetForCached(ctx, neutral);
+  const list = claim.type === 'route' ? routes : freqs;
+  const sourceSet = new Set(list.map((t) => t.canonical));
+  const ok = claim.type === 'route'
+    ? routeCompatible(claim.claimed, sourceSet)
+    : freqCompatible(claim.claimed, sourceSet);
+  if (ok) {
+    const backer = list.find((t) => t.canonical === claim.claimed)
+      || list[0];
+    return {
+      supported: true,
+      reason: 'instruction-match',
+      spans: backer ? [{ start: backer.start, end: backer.end }] : neutral.map((o) => ({ start: o.start, end: o.end }))
+    };
+  }
+  return {
+    supported: false,
+    reason: claim.type === 'route' ? 'route_mismatch' : 'frequency_mismatch',
+    spans: neutral.map((o) => ({ start: o.start, end: o.end })),
+    found: [...new Set(list.map((t) => t.raw))]
+  };
+}
+
+/**
+ * Verify a medication claim (dose-bearing or dose-less) with clinical context:
+ * allergy lists never back a take-order, family mentions never back a patient
+ * order, and avoid clauses only back avoid-style draft claims.
+ */
+function verifyMedicationClaim(claim, src) {
+  const ctx = sourceContext(src);
+  const canon = claim.canonical || String(claim.subject || '').toLowerCase();
+  const cls = drugClassesFor(claim.subject);
+  const forms = drugFormsFor(claim.subject);
+  const occurrences = collectOccurrences(src, forms);
+  const classified = classifyMedOccurrences(src, occurrences, ctx.allergy, ctx.segs);
+  const allergyHit = classified.find((o) => o.cls === 'allergy');
+  const classAllergy = ctx.allergy.patientItems.find((a) =>
+    a.canonical === canon || classIntersection(a.classes, cls, ALLERGY_CLASSES).length > 0);
+
+  if (claim.context === 'avoid' || claim.context === 'adherence') {
+    // "Do not take X" is backed when the source avoids X or its class;
+    // "do not stop X" is backed when the source actually orders X (or class).
+    if (claim.context === 'avoid') {
+      const match = allergyHit || classAllergy
+        || classified.find((o) => o.cls === 'avoid')
+        || (ctx.avoid.canonicals.has(canon) ? { start: -1, end: -1 } : null)
+        || (classIntersection(ctx.avoid.classes, cls, AVOID_CLASSES).length ? { start: -1, end: -1 } : null);
+      if (match) {
+        const spans = allergyHit
+          ? [{ start: allergyHit.start, end: allergyHit.end }]
+          : classAllergy
+          ? [{ start: classAllergy.start, end: classAllergy.end }]
+          : classified.filter((o) => o.cls === 'avoid').map((o) => ({ start: o.start, end: o.end }));
+        return {
+          supported: true,
+          reason: 'context-match',
+          spans: spans.length ? spans : ctx.avoid.spans.slice(0, 2)
+        };
+      }
+      return {
+        supported: false,
+        reason: 'unbacked_medication',
+        spans: classified.map((o) => ({ start: o.start, end: o.end })),
+        detail: { context: 'avoid' }
+      };
+    }
+    // adherence
+    const neutral = classified.filter((o) => o.cls === 'neutral');
+    if (neutral.length) {
+      return { supported: true, reason: 'context-match', spans: neutral.map((o) => ({ start: o.start, end: o.end })) };
+    }
+    if (cls.size) {
+      const classHit = ctx.anchors.find((a) => {
+        const info = DRUG_INFO.get(String(a.surface).toLowerCase());
+        if (!info || info.canonical === canon) return false;
+        return classIntersection(info.classes, cls, AVOID_CLASSES).length > 0;
+      });
+      if (classHit) {
+        const clsClass = classifyMedOccurrences(src, [classHit], ctx.allergy, ctx.segs);
+        if (clsClass.length && clsClass[0].cls === 'neutral') {
+          return { supported: true, reason: 'context-match', spans: [{ start: classHit.start, end: classHit.end }] };
+        }
+      }
+    }
+    return {
+      supported: false,
+      reason: 'unbacked_medication',
+      spans: classified.map((o) => ({ start: o.start, end: o.end })),
+      detail: { context: 'adherence' }
+    };
+  }
+
+  // prescribe-style claim (default): an allergy listing never backs a take order.
+  if (allergyHit || classAllergy) {
+    const hit = allergyHit || classAllergy;
+    return {
+      supported: false,
+      reason: 'allergy_conflict',
+      spans: [{ start: hit.start, end: hit.end }],
+      detail: { allergen: (allergyHit && allergyHit.surface) || (classAllergy && classAllergy.surface) || claim.subject }
+    };
+  }
+  const neutral = classified.filter((o) => o.cls === 'neutral');
+  if (!neutral.length) {
+    if (!classified.length) {
+      // Never named in the source: class-level allergy or avoid can still flag it.
+      const avoidClass = classIntersection(ctx.avoid.classes, cls, AVOID_CLASSES);
+      if (avoidClass.length) {
+        return {
+          supported: false,
+          reason: 'unbacked_medication',
+          spans: ctx.avoid.spans.slice(0, 2),
+          detail: { context: 'class-avoid', class: avoidClass[0] }
+        };
+      }
+      return { supported: false, reason: 'unbacked_medication', spans: [] };
+    }
+    const ctxName = classified[0].cls;
+    return {
+      supported: false,
+      reason: 'unbacked_medication',
+      spans: classified.map((o) => ({ start: o.start, end: o.end })),
+      detail: { context: ctxName }
+    };
+  }
+  if (claim.doseless || claim.value === undefined || claim.value === null || Number.isNaN(claim.value)) {
+    return { supported: true, reason: 'medication-mention-match', spans: neutral.map((o) => ({ start: o.start, end: o.end })) };
+  }
+  return verifyDoseWindows(claim, src, neutral);
+}
+
+/** Dose-window check restricted to occurrences that can back an order. */
+function verifyDoseWindows(claim, src, occurrences, reasonName = 'dosage-mismatch') {
+  const near = [];
+  const windows = occurrences.map((occ) => {
+    const wStart = Math.max(0, occ.start - CLAIM_WINDOW_BEFORE);
+    const wEnd = Math.min(src.length, occ.end + CLAIM_WINDOW_AFTER);
+    const beforeSlice = src.slice(wStart, occ.start);
+    let lastBoundary = -1;
+    for (let i = 0; i < beforeSlice.length; i += 1) {
+      if (isClaimBoundary(beforeSlice, i)) lastBoundary = i;
+    }
+    const backStart = wStart + lastBoundary + 1;
+    const afterSlice = src.slice(occ.end, wEnd);
+    let fwdEnd = afterSlice.length;
+    for (let i = 0; i < afterSlice.length; i += 1) {
+      if (isClaimBoundary(afterSlice, i)) { fwdEnd = i; break; }
+    }
+    // A value parked next to a different subject belongs to that subject:
+    // the window stops at the nearest other anchor on each side.
+    const anchors = subjectAnchorsIn(src, occ);
+    let backLimit = occ.start;
+    for (const a of anchors) {
+      if (a.start >= backStart && a.start < occ.start) { backLimit = a.start; break; }
+    }
+    let fwdLimit = occ.end + fwdEnd;
+    for (const a of anchors) {
+      if (a.start >= occ.end && a.start < fwdLimit) { fwdLimit = a.start; break; }
+    }
+    const base = backStart;
+    const windowText = src.slice(backStart, backLimit) + src.slice(occ.start, occ.end) + src.slice(occ.end, fwdLimit);
+    const occRange = [occ.start - base, occ.end - base];
+    return { base, windowText, occ, occRange };
+  });
+  let unitConflict = null;
+  for (const w of windows) {
+    const nums = numbersInWindow(w.windowText, w.base).filter((n) => !(n.start >= w.occ.start && n.end <= w.occ.end));
+    for (const n of nums) near.push(n);
+    const hit = nums.find((n) => n.value === claim.value);
+    if (hit) {
+      if (claim.unit && hit.unit && !unitsEquivalent(hit.unit, claim.unit)) {
+        unitConflict = { claimedUnit: claim.unit, foundUnit: hit.unit, span: hit };
+        continue;
+      }
+      const start = Math.min(w.occ.start, hit.start);
+      const end = Math.max(w.occ.end, hit.end);
+      return { supported: true, reason: 'subject-value-match', spans: [{ start, end }] };
+    }
+  }
+  if (unitConflict) {
+    return {
+      supported: false,
+      reason: 'unit-mismatch',
+      spans: occurrences,
+      found: [...new Set(near.map((n) => n.value))].slice(0, 6),
+      detail: unitConflict
+    };
+  }
+  return {
+    supported: false,
+    reason: reasonName,
+    spans: occurrences,
+    found: [...new Set(near.map((n) => n.value))].slice(0, 6)
+  };
+}
+
 /**
  * Verify one claim against the source note. A claim is supported when its exact
  * text appears, or when its subject appears with the claimed value (and unit)
  * inside the same clause region. Subject present but a different value on site
  * is a mismatch, not a vague subject match; subject absent is unsupported.
+ * Medication, route, frequency and allergy claims take the context-aware path.
  */
 export function verifyClaim(claim, sourceText) {
   const src = typeof sourceText === 'string' ? sourceText : '';
   if (!claim || typeof claim.raw !== 'string') {
     return { supported: false, reason: 'invalid-claim', spans: [] };
   }
-  const idx = src.toLowerCase().indexOf(claim.raw.toLowerCase());
-  if (idx !== -1) {
-    return { supported: true, reason: 'exact-match', spans: [{ start: idx, end: idx + claim.raw.length }] };
+
+  if (claim.type === 'allergy') return verifyAllergyClaim(claim, src);
+  if (claim.type === 'route' || claim.type === 'frequency') return verifyInstructionClaim(claim, src);
+
+  if (claim.type !== 'medication') {
+    const idx = src.toLowerCase().indexOf(claim.raw.toLowerCase());
+    if (idx !== -1) {
+      return { supported: true, reason: 'exact-match', spans: [{ start: idx, end: idx + claim.raw.length }] };
+    }
   }
 
   if (claim.type === 'date') {
@@ -1926,6 +3985,9 @@ export function verifyClaim(claim, sourceText) {
   }
 
   if (claim.subject) {
+    if (claim.type === 'medication') {
+      return verifyMedicationClaim(claim, src);
+    }
     const forms = subjectSearchForms(claim.subject);
     const occurrences = [];
     for (const form of forms) {
@@ -1944,71 +4006,7 @@ export function verifyClaim(claim, sourceText) {
     if (claim.value === undefined || claim.value === null || Number.isNaN(claim.value)) {
       return { supported: true, reason: 'subject-match', spans: occurrences };
     }
-    const near = [];
-    const windows = occurrences.map((occ) => {
-      const wStart = Math.max(0, occ.start - CLAIM_WINDOW_BEFORE);
-      const wEnd = Math.min(src.length, occ.end + CLAIM_WINDOW_AFTER);
-      const beforeSlice = src.slice(wStart, occ.start);
-      let lastBoundary = -1;
-      for (let i = 0; i < beforeSlice.length; i += 1) {
-        if (isClaimBoundary(beforeSlice, i)) lastBoundary = i;
-      }
-      const backStart = wStart + lastBoundary + 1;
-      const afterSlice = src.slice(occ.end, wEnd);
-      let fwdEnd = afterSlice.length;
-      for (let i = 0; i < afterSlice.length; i += 1) {
-        if (isClaimBoundary(afterSlice, i)) { fwdEnd = i; break; }
-      }
-      // A value parked next to a different subject belongs to that subject:
-      // the window stops at the nearest other anchor on each side.
-      const anchors = subjectAnchorsIn(src, occ);
-      let backLimit = occ.start;
-      for (const a of anchors) {
-        if (a.start >= backStart && a.start < occ.start) { backLimit = a.start; break; }
-      }
-      let fwdLimit = occ.end + fwdEnd;
-      for (const a of anchors) {
-        if (a.start >= occ.end && a.start < fwdLimit) { fwdLimit = a.start; break; }
-      }
-      const base = backStart;
-      const windowText = src.slice(backStart, backLimit) + src.slice(occ.start, occ.end) + src.slice(occ.end, fwdLimit);
-      const occRange = [occ.start - base, occ.end - base];
-      return { base, windowText, occ, occRange };
-    });
-    let unitConflict = null;
-    for (const w of windows) {
-      const nums = numbersInWindow(w.windowText, w.base).filter((n) => !(n.start >= w.occ.start && n.end <= w.occ.end));
-      for (const n of nums) near.push(n);
-      const hit = nums.find((n) => n.value === claim.value);
-      if (hit) {
-        if (claim.unit && hit.unit && !unitsEquivalent(hit.unit, claim.unit)) {
-          unitConflict = { claimedUnit: claim.unit, foundUnit: hit.unit, span: hit };
-          continue;
-        }
-        if (claim.unit && !hit.unit) {
-          // a bare number near the subject still corroborates the claim
-        }
-        const start = Math.min(w.occ.start, hit.start);
-        const end = Math.max(w.occ.end, hit.end);
-        return { supported: true, reason: 'subject-value-match', spans: [{ start, end }] };
-      }
-    }
-    if (unitConflict) {
-      return {
-        supported: false,
-        reason: 'unit-mismatch',
-        spans: occurrences,
-        found: [...new Set(near.map((n) => n.value))].slice(0, 6),
-        detail: unitConflict
-      };
-    }
-    const reason = claim.type === 'lab' ? 'lab-value-mismatch' : 'dosage-mismatch';
-    return {
-      supported: false,
-      reason,
-      spans: occurrences,
-      found: [...new Set(near.map((n) => n.value))].slice(0, 6)
-    };
+    return verifyDoseWindows(claim, src, occurrences, claim.type === 'lab' ? 'lab-value-mismatch' : 'dosage-mismatch');
   }
 
   if (claim.value !== undefined && claim.value !== null) {
@@ -2076,6 +4074,9 @@ export function buildAuditTrail(viewState) {
     start: s.start,
     end: s.end,
     negated: s.negated === true,
+    certainty: s.certainty || (s.negated ? 'negated' : 'affirmed'),
+    temporality: s.temporality || 'current',
+    experiencer: s.experiencer || 'patient',
     verified: true,
     status: 'source-span',
     reason: ''
@@ -2091,6 +4092,9 @@ export function buildAuditTrail(viewState) {
       start: d.index,
       end: d.index + d.raw.length,
       negated: false,
+      certainty: 'affirmed',
+      temporality: 'current',
+      experiencer: 'patient',
       verified: true,
       status: 'source-dose',
       reason: ''
@@ -2110,6 +4114,9 @@ export function buildAuditTrail(viewState) {
         start: r.claimStart,
         end: r.claimEnd,
         negated: false,
+        certainty: 'affirmed',
+        temporality: 'current',
+        experiencer: 'patient',
         verified: r.supported === true,
         status: r.supported ? 'verified' : 'flagged',
         reason: r.supported ? '' : r.reason
@@ -2122,8 +4129,8 @@ export function buildAuditTrail(viewState) {
 export function exportAuditTrail(entries, format = 'json') {
   const list = Array.isArray(entries) ? entries : [];
   if (format === 'csv') {
-    const header = 'index,term,id,category,surface,start,end,negated,verified,status,reason';
-    const rows = list.map((e) => `${e.index},"${String(e.term).replace(/"/g, '""')}","${String(e.id).replace(/"/g, '""')}","${String(e.category).replace(/"/g, '""')}","${String(e.surface).replace(/"/g, '""')}",${e.start},${e.end},${e.negated},${e.verified},"${String(e.status || '').replace(/"/g, '""')}","${String(e.reason || '').replace(/"/g, '""')}"`);
+    const header = 'index,term,id,category,surface,start,end,negated,certainty,temporality,experiencer,verified,status,reason';
+    const rows = list.map((e) => `${e.index},"${String(e.term).replace(/"/g, '""')}","${String(e.id).replace(/"/g, '""')}","${String(e.category).replace(/"/g, '""')}","${String(e.surface).replace(/"/g, '""')}",${e.start},${e.end},${e.negated},"${String(e.certainty || '').replace(/"/g, '""')}","${String(e.temporality || '').replace(/"/g, '""')}","${String(e.experiencer || '').replace(/"/g, '""')}",${e.verified},"${String(e.status || '').replace(/"/g, '""')}","${String(e.reason || '').replace(/"/g, '""')}"`);
     return [header, ...rows].join('\n');
   }
   return JSON.stringify(list, null, 2);

@@ -218,7 +218,7 @@ test('Wave2 Audit 01: audit trail includes claim-check rows for the shown output
 test('Wave2 Audit 02: csv export carries status and reason columns', () => {
   const view = buildUiViewState(createInitialAppState());
   const csv = exportAuditTrail(buildAuditTrail(view), 'csv');
-  assert.match(csv, /^index,term,id,category,surface,start,end,negated,verified,status,reason\n/);
+  assert.match(csv, /^index,term,id,category,surface,start,end,negated,certainty,temporality,experiencer,verified,status,reason\n/);
   assert.match(csv, /claim-check/);
 });
 
@@ -395,7 +395,7 @@ test('Wave2 DOM 03: flagged claim is marked inside the audited draft text', () =
   const auditText = doc.getElementById('claim-audit-text');
   assert.equal(auditText.hidden, false);
   assert.match(auditText.innerHTML, /claim-flag/);
-  assert.match(doc.getElementById('claim-check-summary').textContent, /1 flagged/);
+  assert.match(doc.getElementById('claim-check-summary').textContent, /2 flagged/);
 });
 
 test('Wave2 DOM 04: audit export buttons exist and produce JSON and CSV payloads', () => {
@@ -406,7 +406,7 @@ test('Wave2 DOM 04: audit export buttons exist and produce JSON and CSV payloads
   const csv = vm.runInContext(`downloadAuditTrail('csv', buildUiViewState(appState))`, context);
   assert.ok(json.startsWith('['));
   assert.match(json, /claim-check/);
-  assert.match(csv, /^index,term,id,category,surface,start,end,negated,verified,status,reason\n/);
+  assert.match(csv, /^index,term,id,category,surface,start,end,negated,certainty,temporality,experiencer,verified,status,reason\n/);
 });
 
 test('Wave2 DOM 05: synthetic-example labels are present on presets and the meta strip', () => {
@@ -438,6 +438,6 @@ test('Wave2 Eval 01: headline metrics carry the new audit scores', () => {
   assert.equal(r.metrics.claimFlagAccuracy, 1);
   assert.equal(r.metrics.claimFalseFlagRate, 0);
   assert.equal(r.corpus.negationCases, 26);
-  assert.equal(r.corpus.claimCheckCases, 10);
+  assert.equal(r.corpus.claimCheckCases, 19);
   assert.equal(r.failureModes.length, 10);
 });

@@ -22,7 +22,7 @@
   <a href="#main-workbench" class="skip-link">Skip to Clinical Discharge Workbench</a>
   <noscript>
     <div class="noscript-banner" role="alert">
-      <strong>JavaScript Required for Local Clinical NLP Workbench:</strong> ClinNote runs its 38-term bilingual de-jargonizer, Flesch-Kincaid readability engine, and 24-hour medication collision matrix 100% locally in your browser with zero cloud uploads. Please enable JavaScript to interact with the workbench.
+      <strong>JavaScript Required for Local Clinical NLP Workbench:</strong> ClinNote runs its 145-term bilingual de-jargonizer, Flesch-Kincaid readability engine, and 24-hour medication collision matrix 100% locally in your browser with zero cloud uploads. Please enable JavaScript to interact with the workbench.
     </div>
   </noscript>
 
@@ -228,7 +228,7 @@
                 id="draft-audit-textarea"
                 class="custom-textarea"
                 rows="2"
-                placeholder="Paste any draft patient summary to check each dose, lab value and date against the source note. Leave empty to audit this app's own output."
+                placeholder="Paste any draft patient summary to check each dose, lab value, date, route, frequency and allergy against the source note. Leave empty to audit this app's own output."
               ></textarea>
             </div>
             <p id="claim-audit-mode" class="claim-audit-mode"></p>
@@ -414,9 +414,9 @@
         <article class="impact-card impact-harm">
           <h3 class="impact-title">Who could be harmed, and how</h3>
           <ul class="impact-list">
-            <li>A reader who trusts the plain-language text over the clinician. The engine misses terms outside its 38-entry lexicon (<span id="impact-heldout-recall" class="tabular-nums">held-out recall pending</span>), and a missed term stays unexplained.</li>
+            <li>A reader who trusts the plain-language text over the clinician. The engine misses terms outside its 145-entry lexicon (<span id="impact-heldout-recall" class="tabular-nums">held-out recall pending</span>), and a missed term stays unexplained.</li>
             <li>A reader of a note with negation. Negated terms (such as "No dyspnea") are struck through in the source spans and flagged in the audit trail, but the term is still explained; clinical meaning must be confirmed by a clinician.</li>
-            <li>A reader who treats a verified claim as clinical truth. The claim check confirms that a dose, lab value or date appears near its subject in the source; it cannot tell whether the advice itself is right, and claims it cannot extract pass through unchecked.</li>
+            <li>A reader who treats a verified claim as clinical truth. The claim check confirms that a dose, lab value, date, route, frequency or allergy appears near its subject in the source; it cannot tell whether the advice itself is right, and claims it cannot extract pass through unchecked.</li>
             <li>Spanish readers of pasted custom notes. Custom Spanish output is word substitution, not translation, and needs an interpreter.</li>
             <li>Anyone relying on the add-on check for an item not on its list of four. An unlisted supplement shows no collision, which is not the same as safe.</li>
           </ul>
@@ -476,7 +476,7 @@
       <div class="footer-attribution-block">
         <h2 class="footer-heading">Privacy and clinical disclaimer</h2>
         <p class="footer-copy">
-          <strong>100% Client-Side Privacy Architecture (Zero PHI Transmission):</strong> ClinNote executes its entire 38-term clinical NLP de-jargonizer, Flesch-Kincaid readability engine, 24-hour dosing timeline, and pharmacokinetic collision matrix locally inside your browser using pure JavaScript ES modules. A strict <code>Content-Security-Policy</code> with <code>connect-src 'none'</code> guarantees that zero patient health information (PHI) or custom discharge text is ever transmitted to any external server or cloud API.
+          <strong>100% Client-Side Privacy Architecture (Zero PHI Transmission):</strong> ClinNote executes its entire 145-term clinical NLP de-jargonizer, Flesch-Kincaid readability engine, 24-hour dosing timeline, and pharmacokinetic collision matrix locally inside your browser using pure JavaScript ES modules. A strict <code>Content-Security-Policy</code> with <code>connect-src 'none'</code> guarantees that zero patient health information (PHI) or custom discharge text is ever transmitted to any external server or cloud API.
         </p>
         <p class="footer-copy">
           <strong>Educational Use &amp; Clinical Disclaimer:</strong> ClinNote is an educational clinical communication workbench. Its rules, readability formulas, and benchmark suite are deterministic and unit tested, but the tool does not diagnose, prescribe, or replace direct physician, pharmacist, or interpreter consultation. The Evaluation drawer documents the conditions under which the engine fails.

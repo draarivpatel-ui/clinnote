@@ -124,8 +124,8 @@ test('DOM Smoke 18: all DOM IDs updated via setText/setHtml in js/app.js exist i
   }
 });
 
-test('DOM Smoke 19: all 38 clinical lexicon entries and 4 OTC add-ons are free of em/en-dashes', () => {
-  assert.equal(CLINICAL_LEXICON.length, 38);
+test('DOM Smoke 19: all clinical lexicon entries and 4 OTC add-ons are free of em/en-dashes', () => {
+  assert.equal(CLINICAL_LEXICON.length, 145);
   assert.equal(OTC_ADDONS.length, 4);
   for (const entry of CLINICAL_LEXICON) {
     assert.equal(/[\u2013\u2014]/.test(entry.en), false);

@@ -360,16 +360,16 @@ test('Eval DOM 03: the drawer starts hidden and opens on toggle with metrics rec
   assert.equal(toggle.getAttribute('aria-expanded'), 'true');
   const grid = doc.getElementById('eval-metrics-grid');
   assert.ok(grid.innerHTML.length > 200, 'metrics were not rendered');
-  assert.match(grid.innerHTML, /0\.9459/);
+  assert.match(grid.innerHTML, /0\.9762/);
   assert.match(grid.innerHTML, /Term detection F1/);
   assert.match(grid.innerHTML, /Latency per operation/);
 });
 
-test('Eval DOM 04: all ten metric cards render real computed values, no placeholders', () => {
+test('Eval DOM 04: all eleven metric cards render real computed values, no placeholders', () => {
   const { doc } = bootApp();
   doc.fire('click', doc.getElementById('open-evaluation-btn'));
   const html = doc.getElementById('eval-metrics-grid').innerHTML;
-  assert.equal((html.match(/eval-metric-card/g) || []).length, 10);
+  assert.equal((html.match(/eval-metric-card/g) || []).length, 11);
   assert.match(html, /Combined Brier/);
   assert.match(html, /Failure probes confirmed/);
   assert.equal(/TODO|lorem|placeholder|Coming soon/i.test(html), false);
@@ -381,7 +381,7 @@ test('Eval DOM 05: re-run button recomputes metrics and keeps the currently sele
   doc.fire('click', doc.getElementById('eval-tab-failures'));
   assert.equal(doc.getElementById('eval-panel-failures').hidden, false);
   doc.fire('click', doc.getElementById('run-evaluation-btn'));
-  assert.match(doc.getElementById('eval-metrics-grid').innerHTML, /0\.9459/);
+  assert.match(doc.getElementById('eval-metrics-grid').innerHTML, /0\.9762/);
   assert.equal(doc.getElementById('eval-panel-failures').hidden, false);
   assert.equal(doc.getElementById('eval-panel-metrics').hidden, true);
 });
@@ -433,7 +433,7 @@ test('Eval DOM 09: baseline tab renders exact baseline numbers and measured gain
   const html = doc.getElementById('eval-baseline-body').innerHTML;
   assert.match(html, /Naive baseline/);
   assert.match(html, /Term detection F1: <strong[^>]*>0/);
-  assert.match(html, /\+0\.9459/);
+  assert.match(html, /\+0\.9762/);
   assert.match(html, /Cost:/);
   assert.match(html, /Zero network requests/);
   assert.match(html, /Corpus: 10 term cases/);
@@ -443,7 +443,7 @@ test('Eval DOM 10: case detail tab shows term, collision and triage cases with h
   const { doc } = bootApp();
   doc.fire('click', doc.getElementById('open-evaluation-btn'));
   const html = doc.getElementById('eval-cases-tbody').innerHTML;
-  assert.match(html, /Out-of-lexicon misses: SL, q3h, hematuria/);
+  assert.match(html, /Out-of-lexicon misses: telemetry, WNL/);
   assert.match(html, /data-correct="false"/);
   assert.match(html, /IMMEDIATE EMERGENCY DEPARTMENT/);
   assert.match(html, /RENAL_TRIPLE_WHAMMY|CRITICALCONTRAINDICATION|ABSORPTION_CHELATION/);
@@ -556,18 +556,18 @@ test('Provenance DOM 02: every glossary row links to its numbered source spans',
   const rows = doc.getElementById('jargon-glossary-tbody').innerHTML;
   const noteIds = [...note.matchAll(/data-term-id="([^"]+)" data-span-index="(\d+)"/g)];
   const rowIds = new Set([...rows.matchAll(/<tr class="lexicon-row" data-term-id="([^"]+)"/g)].map((m) => m[1]));
-  assert.equal(noteIds.length, 15);
+  assert.equal(noteIds.length, 17);
   for (const [, id] of noteIds) assert.ok(rowIds.has(id), `no glossary row for ${id}`);
   assert.equal((rows.match(/class="span-chip/g) || []).length, noteIds.length);
 });
 
 test('Evaluation board 01: held-out scoreboard, table and harm panel render on load', () => {
   const { doc } = bootApp();
-  assert.match(doc.getElementById('eval-glance').innerHTML, /0\.7339/);
+  assert.match(doc.getElementById('eval-glance').innerHTML, /1\.0000/);
   assert.match(doc.getElementById('heldout-chart').innerHTML, /0\.7222/);
-  assert.match(doc.getElementById('devset-chart').innerHTML, /0\.9459/);
+  assert.match(doc.getElementById('devset-chart').innerHTML, /0\.9762/);
   assert.equal((doc.getElementById('heldout-tbody').innerHTML.match(/<tr/g) || []).length, 12);
-  assert.match(doc.getElementById('heldout-caption').textContent, /40 of 69/);
-  assert.match(doc.getElementById('impact-heldout-recall').textContent, /0\.5797/);
+  assert.match(doc.getElementById('heldout-caption').textContent, /69 of 69/);
+  assert.match(doc.getElementById('impact-heldout-recall').textContent, /1\.0000, 0 of 69/);
   assert.equal(doc.getElementById('evaluation-drawer').hidden, true);
 });
